@@ -13,29 +13,27 @@ que lorsqu'il a une vraie justification architecturale.
 |---|---|
 | Frontend | SvelteKit, TypeScript |
 | Backend | NestJS, TypeScript, Prisma |
-| Base de données | PostgreSQL |
+| Base de données | PostgreSQL / Cloud SQL |
 | Données de marché | [Twelve Data](https://twelvedata.com/docs) |
-| Infra (à venir) | Docker, Google Cloud, Terraform |
+| Infra | Docker, Google Cloud, Terraform |
 
 ## Documentation
 
-- [Architecture V1](docs/architecture.md)
+- [Architecture](docs/architecture.md)
 - [Décisions d'architecture (ADR)](docs/adr/)
 
-## Roadmap V1 (locale)
+## Roadmap
 
-- [ ] 0. Exploration de l'API Twelve Data
-- [ ] 1. Squelette du repo + PostgreSQL via Docker Compose
-- [ ] 2. API NestJS + `/health` + configuration
-- [ ] 3. Prisma : schéma et migrations
-- [ ] 4. Provider de données de marché (Twelve Data)
-- [ ] 5. Endpoints recherche / détail entreprise
-- [ ] 6. Endpoint cours actuel + cache
-- [ ] 7. Endpoint historique + stockage incrémental
-- [ ] 8. Frontend SvelteKit : recherche et détail
-- [ ] 9. Graphique d'historique
-- [ ] 10. Tests + Dockerfile de l'API
-- [ ] 11. (V1.1) Watchlist
+- [ ] **Phase 0** — Préparation : Node, Docker, exploration de l'API Twelve Data
+- [ ] **Phase 1a** — API NestJS minimale : `/health`, configuration, client Twelve Data, endpoint quote, Dockerfile
+- [ ] **Phase 2** — Premier déploiement : projet GCP, IAM, service account, Artifact Registry, Secret Manager, Cloud Run
+- [ ] **Phase 1b** — PostgreSQL (Docker) + Prisma en local
+- [ ] **Phase 3** — Cloud SQL, connexion Cloud Run → Cloud SQL, migrations
+- [ ] **Phase 4** — Ingestion périodique : Cloud Scheduler, Pub/Sub
+- [ ] **Phase 5** — CI/CD : Cloud Build → Artifact Registry → Cloud Run
+- [ ] **Phase 6** — Observabilité : Logging, Monitoring, Error Reporting
+- [ ] **Phase 7** — Terraform
+- [ ] **Phase 8** — Enrichissement : frontend SvelteKit, historique, graphiques, watchlist, alertes
 
 ## Démarrage local
 
