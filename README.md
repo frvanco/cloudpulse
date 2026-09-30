@@ -25,7 +25,7 @@ que lorsqu'il a une vraie justification architecturale.
 ## Roadmap
 
 - [ ] **Phase 0** — Préparation : Node, Docker, exploration de l'API Twelve Data
-- [ ] **Phase 1a** — API NestJS minimale : `/health`, configuration, client Twelve Data, endpoint quote, Dockerfile
+- [x] **Phase 1a** — API NestJS minimale : `/health`, configuration, client Twelve Data, endpoint quote, Dockerfile
 - [ ] **Phase 2** — Premier déploiement : projet GCP, IAM, service account, Artifact Registry, Secret Manager, Cloud Run
 - [ ] **Phase 1b** — PostgreSQL (Docker) + Prisma en local
 - [ ] **Phase 3** — Cloud SQL, connexion Cloud Run → Cloud SQL, migrations
@@ -37,4 +37,15 @@ que lorsqu'il a une vraie justification architecturale.
 
 ## Démarrage local
 
-_À compléter au fil de la construction._
+Prérequis : Node.js 24 LTS, Docker.
+
+```bash
+cd apps/api
+cp .env.example .env   # puis renseigner TWELVE_DATA_API_KEY
+npm ci
+npm run start:dev
+curl localhost:8080/health
+curl localhost:8080/companies/NVDA/quote
+```
+
+Détails : [apps/api/README.md](apps/api/README.md).
