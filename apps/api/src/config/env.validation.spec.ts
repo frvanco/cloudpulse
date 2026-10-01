@@ -13,6 +13,12 @@ describe('validateEnv', () => {
     );
   });
 
+  it('trims the API key', () => {
+    expect(
+      validateEnv({ TWELVE_DATA_API_KEY: 'key\n' }).TWELVE_DATA_API_KEY,
+    ).toBe('key');
+  });
+
   it('fails fast when the API key is missing', () => {
     expect(() => validateEnv({})).toThrow(/TWELVE_DATA_API_KEY/);
   });

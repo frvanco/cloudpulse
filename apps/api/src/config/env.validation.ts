@@ -8,7 +8,12 @@ const envSchema = z.object({
     .default('development'),
   // Cloud Run injecte PORT (8080 par défaut) : on doit l'écouter.
   PORT: z.coerce.number().int().positive().default(8080),
-  TWELVE_DATA_API_KEY: z.string().min(1, 'TWELVE_DATA_API_KEY is required'),
+  // trim : un secret créé avec `echo` contient souvent un \n final, qui rendrait
+  // l'en-tête HTTP invalide.
+  TWELVE_DATA_API_KEY: z
+    .string()
+    .trim()
+    .min(1, 'TWELVE_DATA_API_KEY is required'),
   TWELVE_DATA_BASE_URL: z.url().default('https://api.twelvedata.com'),
   TWELVE_DATA_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
 });
