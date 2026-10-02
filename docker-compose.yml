@@ -1,0 +1,23 @@
+# Environnement de développement local uniquement.
+# Identifiants volontairement simples : cette base n'est jamais exposée.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: cloudpulse
+      POSTGRES_PASSWORD: cloudpulse
+      POSTGRES_DB: cloudpulse
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Crée la base cloudpulse_test au premier démarrage (tests e2e).
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cloudpulse -d cloudpulse']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

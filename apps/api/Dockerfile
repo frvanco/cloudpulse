@@ -3,7 +3,9 @@
 # --- Étape 1 : build (dépendances de dev + compilation TypeScript) ---
 FROM node:24-slim AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+# Schéma et config Prisma avant npm ci : le postinstall génère le client.
+COPY package.json package-lock.json prisma.config.ts ./
+COPY prisma ./prisma
 RUN npm ci
 COPY . .
 RUN npm run build
@@ -12,7 +14,10 @@ RUN npm run build
 FROM node:24-slim AS prod-deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# --omit=optional : le CLI prisma est une peer dependency *optionnelle* de
+# @prisma/client (devOptional dans le lockfile) ; inutile au runtime.
+# --ignore-scripts : pas de prisma generate ici, le client est déjà dans dist/.
+RUN npm ci --omit=dev --omit=optional --ignore-scripts
 
 # --- Étape 3 : image finale, légère, sans sources ni outils de build ---
 FROM node:24-slim

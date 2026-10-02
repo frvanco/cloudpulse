@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CompaniesModule } from './companies/companies.module.js';
 import { validateEnv } from './config/env.validation.js';
 import { HealthController } from './health/health.controller.js';
+import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { HealthController } from './health/health.controller.js';
       // variables d'environnement du service sont utilisées.
       ignoreEnvFile: process.env.NODE_ENV === 'production',
     }),
+    PrismaModule,
     CompaniesModule,
   ],
   controllers: [HealthController],

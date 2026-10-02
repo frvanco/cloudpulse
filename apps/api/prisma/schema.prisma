@@ -1,0 +1,47 @@
+// Modèle de données : voir docs/adr/0002-modele-de-donnees.md
+// DailyPrice sera ajouté avec l'endpoint d'historique.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  // Explicites : sinon déduits de tsconfig.json, absent lors du `npm ci` du
+  // build Docker.
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Données de référence, quasi statiques.
+model Company {
+  id        Int      @id @default(autoincrement())
+  symbol    String   @unique
+  name      String
+  exchange  String
+  currency  String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  quote Quote?
+
+  @@map("company")
+}
+
+// Dernier cours connu : une ligne par entreprise, mise à jour par upsert.
+// fetchedAt sert de TTL pour le cache.
+model Quote {
+  companyId       Int      @id @map("company_id")
+  price           Decimal  @db.Decimal(18, 6)
+  previousClose   Decimal  @map("previous_close") @db.Decimal(18, 6)
+  change          Decimal  @db.Decimal(18, 6)
+  changePercent   Decimal  @map("change_percent") @db.Decimal(12, 6)
+  isMarketOpen    Boolean  @map("is_market_open")
+  marketTimestamp DateTime @map("market_timestamp") @db.Timestamptz(3)
+  fetchedAt       DateTime @map("fetched_at") @db.Timestamptz(3)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("quote")
+}

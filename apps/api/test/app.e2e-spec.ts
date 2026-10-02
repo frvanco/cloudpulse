@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
+import { PrismaService } from './../src/prisma/prisma.service.js';
 
 const nvdaQuote = {
   symbol: 'NVDA',
@@ -22,8 +23,12 @@ const nvdaQuote = {
   is_market_open: false,
 };
 
+const providerError = (code: number, message = 'error') =>
+  Response.json({ status: 'error', code, message });
+
 describe('API (e2e)', () => {
   let app: INestApplication<App>;
+  let prisma: PrismaService;
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(async () => {
@@ -35,12 +40,22 @@ describe('API (e2e)', () => {
     }).compile();
     app = moduleFixture.createNestApplication();
     await app.init();
+
+    prisma = app.get(PrismaService);
+    await prisma.$executeRaw`TRUNCATE company, quote RESTART IDENTITY CASCADE`;
   });
 
   afterEach(async () => {
     await app.close();
     vi.unstubAllGlobals();
   });
+
+  const getQuote = (symbol: string) =>
+    request(app.getHttpServer()).get(`/companies/${symbol}/quote`);
+
+  // Rend le cours en base plus vieux que le TTL.
+  const expireCachedQuotes = () =>
+    prisma.quote.updateMany({ data: { fetchedAt: new Date(0) } });
 
   it('GET /health', () => {
     return request(app.getHttpServer())
@@ -49,81 +64,97 @@ describe('API (e2e)', () => {
       .expect({ status: 'ok' });
   });
 
-  it('GET /companies/:symbol/quote maps the provider response', async () => {
-    fetchMock.mockResolvedValue(Response.json(nvdaQuote));
+  describe('GET /companies/:symbol/quote', () => {
+    it('fetches from the provider, stores and returns the quote', async () => {
+      fetchMock.mockResolvedValue(Response.json(nvdaQuote));
 
-    const res = await request(app.getHttpServer())
-      .get('/companies/nvda/quote')
-      .expect(200);
+      const res = await getQuote('nvda').expect(200);
 
-    expect(res.body).toEqual({
-      symbol: 'NVDA',
-      name: 'NVIDIA Corp',
-      exchange: 'NASDAQ',
-      currency: 'USD',
-      price: 183.25,
-      previousClose: 180,
-      change: 3.25,
-      changePercent: 1.80556,
-      isMarketOpen: false,
-      marketTimestamp: '2026-09-29T00:00:00.000Z',
+      expect(res.body).toMatchObject({
+        symbol: 'NVDA',
+        name: 'NVIDIA Corp',
+        exchange: 'NASDAQ',
+        currency: 'USD',
+        price: 183.25,
+        previousClose: 180,
+        change: 3.25,
+        changePercent: 1.80556,
+        isMarketOpen: false,
+        marketTimestamp: '2026-09-29T00:00:00.000Z',
+        stale: false,
+      });
+      expect(await prisma.company.count()).toBe(1);
+      expect((await prisma.quote.findFirstOrThrow()).price.toString()).toBe(
+        '183.25',
+      );
+
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(String(url)).toBe('https://api.twelvedata.com/quote?symbol=NVDA');
+      expect(new Headers(init?.headers).get('Authorization')).toBe(
+        'apikey test-key',
+      );
     });
 
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(String(url)).toBe('https://api.twelvedata.com/quote?symbol=NVDA');
-    expect(String(url)).not.toContain('apikey');
-    expect(new Headers(init?.headers).get('Authorization')).toBe(
-      'apikey test-key',
-    );
-  });
+    it('serves a fresh quote from the database without calling the provider', async () => {
+      fetchMock.mockResolvedValue(Response.json(nvdaQuote));
+      await getQuote('NVDA').expect(200);
 
-  it('returns 404 when the provider reports an unknown symbol with HTTP 200', () => {
-    fetchMock.mockResolvedValue(
-      Response.json({
-        status: 'error',
-        code: 404,
-        message: 'symbol not found',
-      }),
-    );
-    return request(app.getHttpServer())
-      .get('/companies/XXXXX/quote')
-      .expect(404);
-  });
+      await getQuote('NVDA').expect(200);
 
-  it('returns 429 when the provider rate limit is reached', () => {
-    fetchMock.mockResolvedValue(
-      Response.json({ status: 'error', code: 429, message: 'credits used' }),
-    );
-    return request(app.getHttpServer())
-      .get('/companies/NVDA/quote')
-      .expect(429);
-  });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
 
-  it('returns 502 and hides the provider message on an invalid API key', async () => {
-    fetchMock.mockResolvedValue(
-      Response.json({
-        status: 'error',
-        code: 401,
-        message: 'bad key test-key',
-      }),
-    );
-    const res = await request(app.getHttpServer())
-      .get('/companies/NVDA/quote')
-      .expect(502);
-    expect(JSON.stringify(res.body)).not.toContain('test-key');
-  });
+    it('refreshes an expired quote without duplicating rows', async () => {
+      fetchMock.mockResolvedValueOnce(Response.json(nvdaQuote));
+      await getQuote('NVDA').expect(200);
+      await expireCachedQuotes();
 
-  it('returns 502 when the provider is unreachable', () => {
-    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
-    return request(app.getHttpServer())
-      .get('/companies/NVDA/quote')
-      .expect(502);
-  });
+      fetchMock.mockResolvedValueOnce(
+        Response.json({ ...nvdaQuote, close: '190.00' }),
+      );
+      const res = await getQuote('NVDA').expect(200);
 
-  it('rejects an invalid symbol without calling the provider', async () => {
-    await request(app.getHttpServer())
-      .get('/companies/NV%20DA%3Bx/quote')
-      .expect(400);
-    expect(fetchMock).not.toHaveBeenCalled();
+      expect(res.body.price).toBe(190);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(await prisma.company.count()).toBe(1);
+      expect(await prisma.quote.count()).toBe(1);
+    });
+
+    it('serves a stale quote when the provider rate limit is reached', async () => {
+      fetchMock.mockResolvedValueOnce(Response.json(nvdaQuote));
+      await getQuote('NVDA').expect(200);
+      await expireCachedQuotes();
+
+      fetchMock.mockResolvedValueOnce(providerError(429));
+      const res = await getQuote('NVDA').expect(200);
+
+      expect(res.body).toMatchObject({ price: 183.25, stale: true });
+    });
+
+    it('returns 429 when the rate limit is reached and nothing is stored', () => {
+      fetchMock.mockResolvedValue(providerError(429));
+      return getQuote('NVDA').expect(429);
+    });
+
+    it('returns 404 when the provider reports an unknown symbol with HTTP 200', () => {
+      fetchMock.mockResolvedValue(providerError(404, 'symbol not found'));
+      return getQuote('XXXXX').expect(404);
+    });
+
+    it('returns 502 and hides the provider message on an invalid API key', async () => {
+      fetchMock.mockResolvedValue(providerError(401, 'bad key test-key'));
+      const res = await getQuote('NVDA').expect(502);
+      expect(JSON.stringify(res.body)).not.toContain('test-key');
+    });
+
+    it('returns 502 when the provider is unreachable', () => {
+      fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+      return getQuote('NVDA').expect(502);
+    });
+
+    it('rejects an invalid symbol without calling the provider', async () => {
+      await getQuote('NV%20DA%3Bx').expect(400);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 });

@@ -24,3 +24,6 @@ npm-debug.log*
 *.tfstate
 *.tfstate.*
 *.tfvars
+
+# Client Prisma généré (npm run prisma:generate / postinstall)
+apps/api/src/generated/

@@ -24,10 +24,10 @@ que lorsqu'il a une vraie justification architecturale.
 
 ## Roadmap
 
-- [ ] **Phase 0** — Préparation : Node, Docker, exploration de l'API Twelve Data
+- [x] **Phase 0** — Préparation : Node, Docker, exploration de l'API Twelve Data
 - [x] **Phase 1a** — API NestJS minimale : `/health`, configuration, client Twelve Data, endpoint quote, Dockerfile
-- [ ] **Phase 2** — Premier déploiement : projet GCP, IAM, service account, Artifact Registry, Secret Manager, Cloud Run
-- [ ] **Phase 1b** — PostgreSQL (Docker) + Prisma en local
+- [x] **Phase 2** — Premier déploiement : projet GCP, IAM, service account, Artifact Registry, Secret Manager, Cloud Run
+- [x] **Phase 1b** — PostgreSQL (Docker) + Prisma en local
 - [ ] **Phase 3** — Cloud SQL, connexion Cloud Run → Cloud SQL, migrations
 - [ ] **Phase 4** — Ingestion périodique : Cloud Scheduler, Pub/Sub
 - [ ] **Phase 5** — CI/CD : Cloud Build → Artifact Registry → Cloud Run
@@ -40,9 +40,11 @@ que lorsqu'il a une vraie justification architecturale.
 Prérequis : Node.js 24 LTS, Docker.
 
 ```bash
+docker compose up -d          # PostgreSQL local (bases cloudpulse et cloudpulse_test)
 cd apps/api
-cp .env.example .env   # puis renseigner TWELVE_DATA_API_KEY
-npm ci
+cp .env.example .env          # puis renseigner TWELVE_DATA_API_KEY
+npm ci                        # génère aussi le client Prisma (postinstall)
+npm run prisma:migrate        # applique les migrations
 npm run start:dev
 curl localhost:8080/health
 curl localhost:8080/companies/NVDA/quote
