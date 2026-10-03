@@ -17,6 +17,7 @@ Variables d'environnement, validées au démarrage (`src/config/env.validation.t
 |---|---|---|
 | `TWELVE_DATA_API_KEY` | oui | — |
 | `DATABASE_URL` | oui | — |
+| `DATABASE_POOL_MAX` | non | `5` |
 | `QUOTE_TTL_SECONDS` | non | `300` |
 | `PORT` | non | `8080` |
 | `TWELVE_DATA_BASE_URL` | non | `https://api.twelvedata.com` |

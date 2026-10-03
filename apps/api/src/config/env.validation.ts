@@ -16,6 +16,9 @@ const envSchema = z.object({
     .min(1, 'TWELVE_DATA_API_KEY is required'),
   // Format : postgresql://USER:PASSWORD@HOST:PORT/DB
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  // Connexions max par instance de l'API. Total = max-instances × cette valeur,
+  // à garder sous le max_connections de la base (faible sur les petites instances).
+  DATABASE_POOL_MAX: z.coerce.number().int().positive().default(5),
   // Durée pendant laquelle un cours en base est servi sans rappeler Twelve Data.
   QUOTE_TTL_SECONDS: z.coerce.number().int().nonnegative().default(300),
   TWELVE_DATA_BASE_URL: z.url().default('https://api.twelvedata.com'),

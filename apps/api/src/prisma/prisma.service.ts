@@ -10,7 +10,10 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
     // Connexion paresseuse : le pool s'ouvre à la première requête, donc
     // l'application démarre (et /health répond) même si la base est lente.
     super({
-      adapter: new PrismaPg({ connectionString: config.get('DATABASE_URL') }),
+      adapter: new PrismaPg({
+        connectionString: config.get('DATABASE_URL'),
+        max: config.get('DATABASE_POOL_MAX'),
+      }),
     });
   }
 
