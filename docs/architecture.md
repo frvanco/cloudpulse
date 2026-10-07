@@ -2,36 +2,33 @@
 
 Parcours progressif « cloud first » : voir [ADR 0003](adr/0003-parcours-cloud-first.md).
 
-## Déployé (phase 2) : API sans base sur Cloud Run
+## Déployé (phase 3) : API + Cloud SQL
 
 ```
 Client (curl + jeton d'identité)
    │  HTTPS, authentifié (roles/run.invoker)
    ▼
-Cloud Run : API NestJS  ──────▶ Twelve Data (API externe)
-   │  identité : service account dédié cloudpulse-api
-   │  image    : Artifact Registry
-   └─ secret   : TWELVE_DATA_API_KEY via Secret Manager
+Cloud Run : API NestJS ─────────────────────▶ Twelve Data (API externe)
+   │  identité : service account cloudpulse-api
+   │  image    : Artifact Registry (europe-west9, tags immuables)
+   │  secrets  : TWELVE_DATA_API_KEY, DATABASE_URL (Secret Manager, versions fixées)
+   │  max-instances 2 × pool 5 = 10 connexions max
+   │
+   │  socket Unix /cloudsql/… (--add-cloudsql-instances, roles/cloudsql.client)
+   ▼
+Cloud SQL PostgreSQL 17 (cloudpulse-db) : Enterprise, db-f1-micro, zonale, IP publique
+sans réseau autorisé ; utilisateur applicatif cloudpulse_app
 ```
-
-Endpoints :
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/health` | Health check |
-| GET | `/companies/:symbol/quote` | Cours actuel via Twelve Data, non persisté |
+| GET | `/health` | Health check (ne dépend pas de la base) |
+| GET | `/companies/:symbol/quote` | Cours actuel, cache-aside en base (voir plus bas) |
 
-## En local (phase 1b) : API + PostgreSQL
+Migrations : `prisma migrate deploy`, lancé depuis un poste via le Cloud SQL Auth Proxy
+(phase 3), puis par un Cloud Run Job utilisant l'image `--target migrate` (phase 5).
 
-```
-API NestJS ──▶ Twelve Data
-   │  Prisma (adapter pg)
-   ▼
-PostgreSQL 17 (docker compose)
-```
-
-`GET /companies/:symbol/quote` applique le cache-aside décrit plus bas (tables `company` et
-`quote`). Cette version exige `DATABASE_URL` : elle sera déployée avec Cloud SQL (phase 3).
+En local, la même API tourne avec PostgreSQL dans Docker Compose (voir le README).
 
 ## Principes
 

@@ -56,3 +56,11 @@ docker run --rm -p 8080:8080 --env-file .env --network cloudpulse_default \
 curl localhost:8080/health
 curl localhost:8080/companies/NVDA/quote
 ```
+
+Image de migration (cible `migrate`, exécutée en Cloud Run Job) :
+
+```bash
+docker build --target migrate -t cloudpulse-migrate .
+docker run --rm --network cloudpulse_default \
+  -e DATABASE_URL=postgresql://cloudpulse:cloudpulse@db:5432/cloudpulse cloudpulse-migrate
+```

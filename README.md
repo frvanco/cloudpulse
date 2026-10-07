@@ -28,9 +28,9 @@ que lorsqu'il a une vraie justification architecturale.
 - [x] **Phase 1a** — API NestJS minimale : `/health`, configuration, client Twelve Data, endpoint quote, Dockerfile
 - [x] **Phase 2** — Premier déploiement : projet GCP, IAM, service account, Artifact Registry, Secret Manager, Cloud Run
 - [x] **Phase 1b** — PostgreSQL (Docker) + Prisma en local
-- [ ] **Phase 3** — Cloud SQL, connexion Cloud Run → Cloud SQL, migrations
+- [x] **Phase 3** — Cloud SQL, connexion Cloud Run → Cloud SQL, migrations
+- [ ] **Phase 5** — CI/CD : Cloud Build → Artifact Registry → Cloud Run, migrations en Cloud Run Job ([ADR 0004](docs/adr/0004-ci-cd-avant-ingestion.md))
 - [ ] **Phase 4** — Ingestion périodique : Cloud Scheduler, Pub/Sub
-- [ ] **Phase 5** — CI/CD : Cloud Build → Artifact Registry → Cloud Run
 - [ ] **Phase 6** — Observabilité : Logging, Monitoring, Error Reporting
 - [ ] **Phase 7** — Terraform
 - [ ] **Phase 8** — Enrichissement : frontend SvelteKit, historique, graphiques, watchlist, alertes

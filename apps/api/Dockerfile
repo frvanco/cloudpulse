@@ -19,8 +19,21 @@ COPY package.json package-lock.json ./
 # --ignore-scripts : pas de prisma generate ici, le client est déjà dans dist/.
 RUN npm ci --omit=dev --omit=optional --ignore-scripts
 
-# --- Étape 3 : image finale, légère, sans sources ni outils de build ---
-FROM node:24-slim
+# --- Cible « migrate » : applique les migrations Prisma (Cloud Run Job) ---
+# docker build --target migrate ... ; reçoit DATABASE_URL comme l'API.
+FROM node:24-slim AS migrate
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json /app/prisma.config.ts ./
+COPY --from=build /app/prisma ./prisma
+# Prisma avertit « failed to detect the libssl/openssl version » : sans effet ici,
+# la connexion passe par le socket Unix de Cloud SQL (pas de TLS côté Prisma).
+# À revoir si DATABASE_URL utilise un jour sslmode=require.
+USER node
+CMD ["node_modules/.bin/prisma", "migrate", "deploy"]
+
+# --- Image finale (cible par défaut, doit rester la dernière) : l'API ---
+FROM node:24-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=prod-deps /app/node_modules ./node_modules
