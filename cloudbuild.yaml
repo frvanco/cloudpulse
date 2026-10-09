@@ -11,7 +11,7 @@ steps:
         npm run lint
         npm test
 
-  - id: build
+  - id: build-api
     name: gcr.io/cloud-builders/docker
     dir: apps/api
     args:
@@ -20,8 +20,85 @@ steps:
       - europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
       - .
 
+  - id: build-migrate
+    name: gcr.io/cloud-builders/docker
+    dir: apps/api
+    args:
+      - build
+      - --target
+      - migrate
+      - -t
+      - europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-migrate:$SHORT_SHA
+      - .
+
+  - id: push-api
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
+
+  - id: push-migrate
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-migrate:$SHORT_SHA
+
+  - id: migrate
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - deploy
+      - cloudpulse-migrate
+      - --project=$PROJECT_ID
+      - --region=europe-west9
+      - --image=europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-migrate:$SHORT_SHA
+      - --service-account=cloudpulse-migrate@$PROJECT_ID.iam.gserviceaccount.com
+      - --set-cloudsql-instances=$PROJECT_ID:europe-west9:cloudpulse-db
+      - --set-secrets=DATABASE_URL=database-url:1
+      - --tasks=1
+      - --parallelism=1
+      - --max-retries=0
+      - --task-timeout=300s
+      - --execute-now
+      - --wait
+      - --quiet
+
+  - id: deploy-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - cloudpulse-api
+      - --project=$PROJECT_ID
+      - --region=europe-west9
+      - --image=europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
+      - --service-account=cloudpulse-api@$PROJECT_ID.iam.gserviceaccount.com
+      - --add-cloudsql-instances=$PROJECT_ID:europe-west9:cloudpulse-db
+      - --update-secrets=DATABASE_URL=database-url:1
+      - --no-traffic
+      - --quiet
+
+  - id: promote-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update-traffic
+      - cloudpulse-api
+      - --project=$PROJECT_ID
+      - --region=europe-west9
+      - --to-latest
+      - --quiet
+
 images:
   - europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
+  - europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-migrate:$SHORT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
