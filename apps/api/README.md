@@ -64,3 +64,5 @@ docker build --target migrate -t cloudpulse-migrate .
 docker run --rm --network cloudpulse_default \
   -e DATABASE_URL=postgresql://cloudpulse:cloudpulse@db:5432/cloudpulse cloudpulse-migrate
 ```
+
+CI : les changements de l’API sur main sont validés par Cloud Build.
