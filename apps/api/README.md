@@ -6,7 +6,8 @@ API REST NestJS de CloudPulse.
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/health` | Health check |
+| GET | `/health` | Liveness : le process répond (aucune dépendance) |
+| GET | `/health/ready` | Readiness : vérifie la base (`SELECT 1`), 503 si injoignable ; utilisé par le test de fumée du pipeline |
 | GET | `/companies/:symbol/quote` | Cours actuel : base d'abord, Twelve Data si absent ou plus vieux que `QUOTE_TTL_SECONDS` ; renvoie la dernière valeur connue avec `stale: true` si Twelve Data est indisponible |
 
 ## Configuration

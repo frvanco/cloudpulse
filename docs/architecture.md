@@ -22,7 +22,8 @@ sans réseau autorisé ; utilisateur applicatif cloudpulse_app
 
 | Méthode | Route | Description |
 |---|---|---|
-| GET | `/health` | Health check (ne dépend pas de la base) |
+| GET | `/health` | Liveness (ne dépend pas de la base) |
+| GET | `/health/ready` | Readiness : vérifie la base, sans appeler Twelve Data |
 | GET | `/companies/:symbol/quote` | Cours actuel, cache-aside en base (voir plus bas) |
 
 Migrations : `prisma migrate deploy`, lancé depuis un poste via le Cloud SQL Auth Proxy
