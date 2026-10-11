@@ -64,6 +64,23 @@ describe('API (e2e)', () => {
       .expect({ status: 'ok' });
   });
 
+  it('GET /health/ready checks the database without calling the provider', async () => {
+    await request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(200)
+      .expect({ status: 'ok', database: 'ok' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('GET /health/ready returns 503 when the database is unreachable', async () => {
+    vi.spyOn(prisma, '$queryRaw').mockRejectedValueOnce(
+      new Error('connection refused'),
+    );
+    await request(app.getHttpServer()).get('/health/ready').expect(503);
+    // La liveness ne dépend pas de la base.
+    await request(app.getHttpServer()).get('/health').expect(200);
+  });
+
   describe('GET /companies/:symbol/quote', () => {
     it('fetches from the provider, stores and returns the quote', async () => {
       fetchMock.mockResolvedValue(Response.json(nvdaQuote));
