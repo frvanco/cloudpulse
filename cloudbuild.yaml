@@ -79,7 +79,60 @@ steps:
       - --add-cloudsql-instances=$PROJECT_ID:europe-west9:cloudpulse-db
       - --update-secrets=DATABASE_URL=database-url:1
       - --no-traffic
+      - --tag=candidate
       - --quiet
+
+  - id: smoke-test
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+
+        gcloud run services describe cloudpulse-api \
+          --project=$PROJECT_ID \
+          --region=europe-west9 \
+          --format=json > /workspace/service.json
+
+        SERVICE_URL="$$(python3 -c '
+        import json
+        with open("/workspace/service.json") as f:
+            service = json.load(f)
+        print(service["status"]["url"])
+        ')"
+
+        CANDIDATE_URL="$$(python3 -c '
+        import json
+        with open("/workspace/service.json") as f:
+            service = json.load(f)
+        candidates = [
+            t for t in service["status"]["traffic"]
+            if t.get("tag") == "candidate"
+        ]
+        if len(candidates) != 1:
+            raise SystemExit("Le tag candidate est absent ou ambigu")
+        print(candidates[0]["url"])
+        ')"
+
+        TOKEN="$$(gcloud auth print-identity-token \
+          --audiences="$${SERVICE_URL}")"
+
+        test -n "$${TOKEN}"
+
+        printf 'Test readiness : %s/health/ready\n' "$${CANDIDATE_URL}"
+
+        curl --fail --silent --show-error \
+          --connect-timeout 10 \
+          --max-time 30 \
+          --retry 5 \
+          --retry-delay 3 \
+          --retry-max-time 120 \
+          --retry-connrefused \
+          -H "Authorization: Bearer $${TOKEN}" \
+          "$${CANDIDATE_URL}/health/ready"
+
+        printf '\nSmoke test réussi\n'
 
   - id: promote-api
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -91,7 +144,7 @@ steps:
       - cloudpulse-api
       - --project=$PROJECT_ID
       - --region=europe-west9
-      - --to-latest
+      - --to-tags=candidate=100
       - --quiet
 
 images:
