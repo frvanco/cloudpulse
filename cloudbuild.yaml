@@ -120,7 +120,7 @@ steps:
 
         test -n "$${TOKEN}"
 
-        printf 'Test readiness : %s/health/ready\n' "$${CANDIDATE_URL}"
+        printf 'Test readiness : %s/health/nope\n' "$${CANDIDATE_URL}"
 
         curl --fail --silent --show-error \
           --connect-timeout 10 \
@@ -130,7 +130,7 @@ steps:
           --retry-max-time 120 \
           --retry-connrefused \
           -H "Authorization: Bearer $${TOKEN}" \
-          "$${CANDIDATE_URL}/health/ready"
+          "$${CANDIDATE_URL}/health/nope"
 
         printf '\nSmoke test réussi\n'
 
