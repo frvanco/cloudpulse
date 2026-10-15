@@ -146,6 +146,89 @@ steps:
       - --region=europe-west9
       - --to-tags=candidate=100
       - --quiet
+  - id: deploy-ingest
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - cloudpulse-ingest
+      - --project=$PROJECT_ID
+      - --region=europe-west9
+      - --image=europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
+      - --service-account=cloudpulse-ingest@$PROJECT_ID.iam.gserviceaccount.com
+      - --add-cloudsql-instances=$PROJECT_ID:europe-west9:cloudpulse-db
+      - --update-secrets=DATABASE_URL=database-url:1,TWELVE_DATA_API_KEY=twelve-data-api-key:1
+      - --update-env-vars=APP_MODE=ingest,INGESTION_QUEUE=projects/$PROJECT_ID/locations/europe-west1/queues/ingest-quotes,INGESTION_TARGET_URL=https://cloudpulse-ingest-595188864600.europe-west9.run.app,INGESTION_INVOKER_SA=cloudpulse-ingest-invoker@$PROJECT_ID.iam.gserviceaccount.com
+      - --max-instances=1
+      - --no-traffic
+      - --tag=candidate
+      - --quiet
+
+  - id: smoke-test-ingest
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+
+        gcloud run services describe cloudpulse-ingest \
+          --project=$PROJECT_ID \
+          --region=europe-west9 \
+          --format=json > /workspace/ingest-service.json
+
+        SERVICE_URL="$$(python3 -c '
+        import json
+        with open("/workspace/ingest-service.json") as f:
+            service = json.load(f)
+        print(service["status"]["url"])
+        ')"
+
+        CANDIDATE_URL="$$(python3 -c '
+        import json
+        with open("/workspace/ingest-service.json") as f:
+            service = json.load(f)
+        candidates = [
+            t for t in service["status"]["traffic"]
+            if t.get("tag") == "candidate"
+        ]
+        if len(candidates) != 1:
+            raise SystemExit("Le tag candidate est absent ou ambigu")
+        print(candidates[0]["url"])
+        ')"
+
+        TOKEN="$$(gcloud auth print-identity-token \
+          --audiences="$${SERVICE_URL}")"
+
+        test -n "$${TOKEN}"
+
+        printf 'Test ingestion : %s/health/ready\n' "$${CANDIDATE_URL}"
+
+        curl --fail --silent --show-error \
+          --connect-timeout 10 \
+          --max-time 30 \
+          --retry 5 \
+          --retry-delay 3 \
+          --retry-max-time 120 \
+          --retry-connrefused \
+          -H "Authorization: Bearer $${TOKEN}" \
+          "$${CANDIDATE_URL}/health/ready"
+
+        printf '\nSmoke test ingestion réussi\n'
+
+  - id: promote-ingest
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update-traffic
+      - cloudpulse-ingest
+      - --project=$PROJECT_ID
+      - --region=europe-west9
+      - --to-tags=candidate=100
+      - --quiet
 
 images:
   - europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
