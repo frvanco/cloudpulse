@@ -19,6 +19,21 @@ export interface TwelveDataQuoteResponse {
   is_market_open: boolean;
 }
 
+export interface TwelveDataTimeSeriesValue {
+  datetime: string; // AAAA-MM-JJ pour interval=1day
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume?: string;
+}
+
+export interface TwelveDataTimeSeriesResponse {
+  meta: { symbol: string; interval: string; currency?: string };
+  values: TwelveDataTimeSeriesValue[];
+  status: 'ok';
+}
+
 // Twelve Data peut renvoyer une erreur avec un statut HTTP 200 :
 // il faut inspecter le corps de la réponse.
 export interface TwelveDataErrorResponse {

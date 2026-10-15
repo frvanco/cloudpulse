@@ -11,6 +11,7 @@ import type { Env } from '../config/env.validation.js';
 import type {
   TwelveDataErrorResponse,
   TwelveDataQuoteResponse,
+  TwelveDataTimeSeriesResponse,
 } from './twelve-data.types.js';
 
 @Injectable()
@@ -21,6 +22,18 @@ export class TwelveDataService {
 
   getQuote(symbol: string): Promise<TwelveDataQuoteResponse> {
     return this.request<TwelveDataQuoteResponse>('/quote', { symbol });
+  }
+
+  // Derniers cours journaliers, du plus récent au plus ancien (1 crédit).
+  getDailySeries(
+    symbol: string,
+    days: number,
+  ): Promise<TwelveDataTimeSeriesResponse> {
+    return this.request<TwelveDataTimeSeriesResponse>('/time_series', {
+      symbol,
+      interval: '1day',
+      outputsize: String(days),
+    });
   }
 
   private async request<T>(

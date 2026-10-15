@@ -2,9 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module.js';
 import type { Env } from './config/env.validation.js';
+import { IngestAppModule } from './ingest-app.module.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Même image, deux services : APP_MODE choisit le module racine. La valeur
+  // est ensuite revalidée par la configuration.
+  const rootModule =
+    process.env.APP_MODE === 'ingest' ? IngestAppModule : AppModule;
+  const app = await NestFactory.create(rootModule);
   // Cloud Run envoie SIGTERM avant d'arrêter une instance : arrêt propre.
   app.enableShutdownHooks();
 

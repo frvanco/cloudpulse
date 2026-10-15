@@ -42,7 +42,7 @@ describe('API (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
-    await prisma.$executeRaw`TRUNCATE company, quote RESTART IDENTITY CASCADE`;
+    await prisma.$executeRaw`TRUNCATE company, quote, daily_price RESTART IDENTITY CASCADE`;
   });
 
   afterEach(async () => {
@@ -79,6 +79,12 @@ describe('API (e2e)', () => {
     await request(app.getHttpServer()).get('/health/ready').expect(503);
     // La liveness ne dépend pas de la base.
     await request(app.getHttpServer()).get('/health').expect(200);
+  });
+
+  it('does not expose the internal ingestion routes', () => {
+    return request(app.getHttpServer())
+      .post('/internal/ingestion/dispatch')
+      .expect(404);
   });
 
   describe('GET /companies/:symbol/quote', () => {

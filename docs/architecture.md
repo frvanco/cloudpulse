@@ -31,6 +31,32 @@ Migrations : `prisma migrate deploy`, lancé depuis un poste via le Cloud SQL Au
 
 En local, la même API tourne avec PostgreSQL dans Docker Compose (voir le README).
 
+## Ingestion quotidienne (phase 4)
+
+Voir [ADR 0005](adr/0005-ingestion-cloud-tasks.md).
+
+```
+Cloud Scheduler (lun.–ven. soir, heure de Paris)
+   │  POST + jeton OIDC
+   ▼
+cloudpulse-ingest (Cloud Run privé, même image, APP_MODE=ingest)
+   POST /internal/ingestion/dispatch
+   │  1 tâche par entreprise : SYMBOLE-AAAA-MM-JJ (dédoublonnage par nom)
+   ▼
+Cloud Tasks, file ingest-quotes (débit < 8 req/min, concurrence 1, retries + backoff)
+   │  POST + jeton OIDC (INGESTION_INVOKER_SA)
+   ▼
+cloudpulse-ingest
+   POST /internal/ingestion/symbols/:symbol ──▶ Twelve Data time_series (1 crédit)
+   │  upsert (company_id, date)
+   ▼
+Cloud SQL : daily_price
+```
+
+- Erreur définitive (entreprise ou symbole inconnu) : réponse 200, la tâche n'est pas rejouée.
+- Erreur passagère (429, 502) : réponse 4xx/5xx, Cloud Tasks réessaie avec backoff.
+- Rejouer une tâche ou un dispatch n'a pas d'effet de bord (dédoublonnage + upsert).
+
 ## Livraison continue (phase 5)
 
 ```
@@ -75,7 +101,7 @@ Transverses : Secret Manager, Artifact Registry, Cloud Build, Cloud Logging/Moni
 |---|---|---|
 | `Company` | Données de référence | `symbol` unique |
 | `Quote` | Dernier cours, 1 ligne par entreprise | upsert, `fetchedAt` sert de TTL de cache |
-| `DailyPrice` | (avec l'endpoint historique) Historique journalier OHLCV | unique `(companyId, date)`, prix en `NUMERIC` |
+| `DailyPrice` | Historique journalier OHLCV, alimenté par l'ingestion | unique `(companyId, date)`, prix en `NUMERIC` |
 | `WatchlistItem` | (plus tard) Entreprises suivies | — |
 
 Voir [ADR 0002](adr/0002-modele-de-donnees.md).
