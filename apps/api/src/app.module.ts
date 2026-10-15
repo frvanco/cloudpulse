@@ -1,22 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { CompaniesModule } from './companies/companies.module.js';
-import { validateEnv } from './config/env.validation.js';
+import { AppConfigModule } from './config/app-config.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
+// Mode « api » : l'API publique (service cloudpulse-api).
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      validate: validateEnv,
-      // En local on lit .env ; sur Cloud Run il n'existe pas et seules les
-      // variables d'environnement du service sont utilisées.
-      ignoreEnvFile: process.env.NODE_ENV === 'production',
-    }),
-    PrismaModule,
-    CompaniesModule,
-  ],
+  imports: [AppConfigModule, PrismaModule, CompaniesModule],
   controllers: [HealthController],
 })
 export class AppModule {}

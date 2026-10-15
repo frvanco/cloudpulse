@@ -26,6 +26,20 @@ describe('validateEnv', () => {
     );
   });
 
+  it('requires the ingestion settings in ingest mode', () => {
+    expect(() => validateEnv({ ...base, APP_MODE: 'ingest' })).toThrow(
+      /INGESTION_QUEUE.*INGESTION_TARGET_URL.*INGESTION_INVOKER_SA/,
+    );
+    const env = validateEnv({
+      ...base,
+      APP_MODE: 'ingest',
+      INGESTION_QUEUE: 'projects/p/locations/europe-west9/queues/ingest-quotes',
+      INGESTION_TARGET_URL: 'https://ingest.example.test',
+      INGESTION_INVOKER_SA: 'invoker@p.iam.gserviceaccount.com',
+    });
+    expect(env.INGESTION_HISTORY_DAYS).toBe(5);
+  });
+
   it('fails fast when the API key is missing', () => {
     expect(() => validateEnv({})).toThrow(/TWELVE_DATA_API_KEY/);
   });

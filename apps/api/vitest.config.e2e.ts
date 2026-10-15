@@ -15,11 +15,14 @@ export default defineConfig({
     root: './',
     include: ['**/*.e2e-spec.ts'],
     globalSetup: ['./test/global-setup.ts'],
+    // Les fichiers partagent la même base de test : pas d'exécution parallèle.
+    fileParallelism: false,
     // Lu par ConfigModule.forRoot, évalué dès l'import d'AppModule.
     env: {
       TWELVE_DATA_API_KEY: 'test-key',
       DATABASE_URL: databaseUrl,
       QUOTE_TTL_SECONDS: '300',
+      INGESTION_TARGET_URL: 'https://ingest.example.test',
     },
   },
 });
