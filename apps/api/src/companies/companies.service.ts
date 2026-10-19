@@ -24,6 +24,7 @@ export class CompaniesService {
   async getQuote(symbol: string): Promise<QuoteDto> {
     const stored = await this.findStoredQuote(symbol);
     if (stored && this.isFresh(stored.fetchedAt)) {
+      this.logServed(symbol, 'cache');
       return toQuoteDto(stored, false);
     }
 
@@ -34,13 +35,23 @@ export class CompaniesService {
       // Dégradation gracieuse : quota atteint ou fournisseur en panne, on sert
       // la dernière valeur connue en le signalant.
       if (stored && isTransientProviderError(error)) {
-        this.logger.warn(`Serving stale quote for ${symbol}`);
+        this.logServed(symbol, 'stale');
         return toQuoteDto(stored, true);
       }
       throw error;
     }
 
-    return toQuoteDto(await this.saveQuote(symbol, fresh), false);
+    const saved = await this.saveQuote(symbol, fresh);
+    this.logServed(symbol, 'provider');
+    return toQuoteDto(saved, false);
+  }
+
+  // Événement structuré : base des métriques « taux de cache » et « données
+  // périmées servies » (log-based metrics).
+  private logServed(symbol: string, source: 'cache' | 'provider' | 'stale') {
+    const event = { event: 'quote.served', symbol, source };
+    if (source === 'stale') this.logger.warn(event);
+    else this.logger.log(event);
   }
 
   private findStoredQuote(symbol: string) {

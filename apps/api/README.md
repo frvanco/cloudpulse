@@ -40,9 +40,33 @@ Variables d'environnement, validées au démarrage (`src/config/env.validation.t
 | `INGESTION_TARGET_URL` | en mode `ingest` | — (URL du service d'ingestion : cible des tâches et audience OIDC) |
 | `INGESTION_INVOKER_SA` | en mode `ingest` | — (service account qui signe le jeton OIDC des tâches) |
 | `INGESTION_HISTORY_DAYS` | non | `5` |
+| `LOG_FORMAT` | non | `json` en production, `pretty` sinon |
+| `GOOGLE_CLOUD_PROJECT` | non | — (ID du projet : relie chaque log à la trace de sa requête) |
 
 En local, copier `.env.example` en `.env`. En production (`NODE_ENV=production`),
 le fichier `.env` est ignoré : seules les variables d'environnement du service comptent.
+
+## Logs et observabilité
+
+En production, chaque log est **une ligne JSON sur stdout** (`src/observability/gcp-json-logger.ts`),
+interprétée par Cloud Logging :
+
+| Champ | Effet dans Google Cloud |
+|---|---|
+| `severity` | Niveau du log (INFO, WARNING, ERROR…) |
+| `message` | Texte affiché dans Logs Explorer |
+| `logging.googleapis.com/trace` | Regroupe les logs d'une même requête (si `GOOGLE_CLOUD_PROJECT` est défini) |
+| `@type` ReportedErrorEvent + pile d'appels | Crée ou incrémente une erreur dans **Error Reporting** (exceptions non gérées) |
+| autres champs | Dans `jsonPayload`, interrogeables et utilisables pour des **métriques basées sur les logs** |
+
+Événements structurés (champ `event`, stable) :
+
+| `event` | Champs | Sévérité |
+|---|---|---|
+| `quote.served` | `symbol`, `source` (`cache` / `provider` / `stale`) | INFO, WARNING si `stale` |
+| `provider.request` | `path`, `outcome` (`ok` / `error` / `unreachable`), `code`, `durationMs` | INFO / WARNING / ERROR |
+| `ingestion.dispatch` | `date`, `companies`, `enqueued`, `alreadyQueued` | INFO |
+| `ingestion.symbol` | `symbol`, `status` (`ingested` / `skipped`), `days`, `reason` | INFO / WARNING |
 
 ## Commandes
 

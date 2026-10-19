@@ -43,7 +43,7 @@ cloudpulse-ingest (Cloud Run privé, même image, APP_MODE=ingest)
    POST /internal/ingestion/dispatch
    │  1 tâche par entreprise : SYMBOLE-AAAA-MM-JJ (dédoublonnage par nom)
    ▼
-Cloud Tasks, file ingest-quotes (débit < 8 req/min, concurrence 1, retries + backoff)
+Cloud Tasks, file ingest-quotes en europe-west1 (débit < 8 req/min, concurrence 1, retries + backoff)
    │  POST + jeton OIDC (INGESTION_INVOKER_SA)
    ▼
 cloudpulse-ingest
@@ -83,14 +83,16 @@ Fusion sur main ──▶ déclencheur cloudpulse-api-main (SA cloudpulse-build)
 - **Aucun secret dans Git ni dans l'image** : `.env` local ignoré, Secret Manager sur GCP.
 - **Moindre privilège** : service account dédié, rôles prédéfinis au plus près de la ressource.
 - **Maîtrise des coûts** : scale-to-zero, `max-instances` bas, alerte budgétaire.
+- **Observabilité** : logs JSON structurés sur stdout (Cloud Logging), corrélés aux traces, exceptions remontées dans Error Reporting, événements métier (`event`) exploitables en métriques basées sur les logs. Voir `apps/api/README.md`.
 
 ## Architecture cible (introduite progressivement)
 
 ```
 SvelteKit ──▶ Cloud Run (API NestJS) ──▶ Cloud SQL PostgreSQL
 
-Cloud Scheduler ──▶ Pub/Sub ──▶ Cloud Run (ingestion) ──▶ Twelve Data
-                                        └──▶ Cloud SQL
+Cloud Scheduler ──▶ Cloud Run (ingestion) ──▶ Cloud Tasks ──▶ Cloud Run (ingestion) ──▶ Twelve Data
+                                                                              └──▶ Cloud SQL
+Pub/Sub : événements « cours mis à jour » pour les alertes (phase 8)
 ```
 
 Transverses : Secret Manager, Artifact Registry, Cloud Build, Cloud Logging/Monitoring, Terraform.

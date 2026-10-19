@@ -56,7 +56,7 @@ export class IngestionService {
       enqueued,
       alreadyQueued,
     };
-    this.logger.log(`Dispatch ${JSON.stringify(summary)}`);
+    this.logger.log({ event: 'ingestion.dispatch', ...summary });
     return summary;
   }
 
@@ -96,13 +96,19 @@ export class IngestionService {
       }),
     );
 
-    this.logger.log(`Ingested ${values.length} day(s) for ${symbol}`);
-    return { symbol, status: 'ingested', days: values.length };
+    const result: IngestResult = {
+      symbol,
+      status: 'ingested',
+      days: values.length,
+    };
+    this.logger.log({ event: 'ingestion.symbol', ...result });
+    return result;
   }
 
   private skip(symbol: string, reason: string): IngestResult {
-    this.logger.warn(`Skipping ${symbol}: ${reason}`);
-    return { symbol, status: 'skipped', reason };
+    const result: IngestResult = { symbol, status: 'skipped', reason };
+    this.logger.warn({ event: 'ingestion.symbol', ...result });
+    return result;
   }
 }
 
