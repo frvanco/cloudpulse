@@ -27,6 +27,12 @@ const envSchema = z
     TWELVE_DATA_BASE_URL: z.url().default('https://api.twelvedata.com'),
     TWELVE_DATA_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
 
+    // Lus directement dans main.ts (avant la configuration) ; déclarés ici pour
+    // la documentation et la validation.
+    LOG_FORMAT: z.enum(['json', 'pretty']).optional(),
+    // Permet de relier chaque log à la trace de sa requête (Cloud Trace).
+    GOOGLE_CLOUD_PROJECT: z.string().optional(),
+
     // --- Mode ingest uniquement ---
     // File Cloud Tasks : projects/PROJET/locations/REGION/queues/FILE
     INGESTION_QUEUE: z

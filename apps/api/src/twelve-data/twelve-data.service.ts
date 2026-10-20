@@ -43,6 +43,7 @@ export class TwelveDataService {
     const url = new URL(path, this.config.get('TWELVE_DATA_BASE_URL'));
     url.search = new URLSearchParams(params).toString();
 
+    const startedAt = Date.now();
     let response: Response;
     try {
       response = await fetch(url, {
@@ -53,7 +54,13 @@ export class TwelveDataService {
         signal: AbortSignal.timeout(this.config.get('TWELVE_DATA_TIMEOUT_MS')),
       });
     } catch (error) {
-      this.logger.error(`Twelve Data unreachable on ${path}: ${String(error)}`);
+      this.logger.error({
+        event: 'provider.request',
+        path,
+        outcome: 'unreachable',
+        durationMs: Date.now() - startedAt,
+        error: String(error),
+      });
       throw new BadGatewayException('Market data provider unreachable');
     }
 
@@ -66,23 +73,35 @@ export class TwelveDataService {
       );
     }
     if (isErrorResponse(body)) {
-      throw this.toHttpException(path, body);
+      this.logger.warn({
+        event: 'provider.request',
+        path,
+        outcome: 'error',
+        code: body.code,
+        durationMs: Date.now() - startedAt,
+        // Par précaution, la clé n'apparaît jamais dans les logs.
+        providerMessage: body.message.replaceAll(
+          this.config.get('TWELVE_DATA_API_KEY'),
+          '[REDACTED]',
+        ),
+      });
+      throw this.toHttpException(body);
     }
     if (!response.ok) {
       throw new BadGatewayException(
         `Market data provider returned HTTP ${response.status}`,
       );
     }
+    this.logger.log({
+      event: 'provider.request',
+      path,
+      outcome: 'ok',
+      durationMs: Date.now() - startedAt,
+    });
     return body;
   }
 
-  private toHttpException(
-    path: string,
-    error: TwelveDataErrorResponse,
-  ): HttpException {
-    this.logger.warn(
-      `Twelve Data error on ${path}: code=${error.code} message=${error.message}`,
-    );
+  private toHttpException(error: TwelveDataErrorResponse): HttpException {
     switch (error.code) {
       case 400:
       case 404:

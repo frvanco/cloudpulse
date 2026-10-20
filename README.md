@@ -30,7 +30,7 @@ que lorsqu'il a une vraie justification architecturale.
 - [x] **Phase 1b** — PostgreSQL (Docker) + Prisma en local
 - [x] **Phase 3** — Cloud SQL, connexion Cloud Run → Cloud SQL, migrations
 - [x] **Phase 5** — CI/CD : Cloud Build → Artifact Registry → Cloud Run, migrations en Cloud Run Job ([ADR 0004](docs/adr/0004-ci-cd-avant-ingestion.md))
-- [ ] **Phase 4** — Ingestion périodique : Cloud Scheduler, Pub/Sub
+- [x] **Phase 4** — Ingestion quotidienne : Cloud Scheduler, Cloud Tasks ([ADR 0005](docs/adr/0005-ingestion-cloud-tasks.md))
 - [ ] **Phase 6** — Observabilité : Logging, Monitoring, Error Reporting
 - [ ] **Phase 7** — Terraform
 - [ ] **Phase 8** — Enrichissement : frontend SvelteKit, historique, graphiques, watchlist, alertes
