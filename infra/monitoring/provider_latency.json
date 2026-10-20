@@ -1,0 +1,16 @@
+{
+  "name": "provider_latency",
+  "description": "Duree en millisecondes des appels Twelve Data journalises.",
+  "filter": "resource.type=\"cloud_run_revision\" AND (resource.labels.service_name=\"cloudpulse-api\" OR resource.labels.service_name=\"cloudpulse-ingest\") AND jsonPayload.event=\"provider.request\" AND jsonPayload.durationMs:*",
+  "metricDescriptor": {
+    "metricKind": "DELTA",
+    "valueType": "DISTRIBUTION",
+    "unit": "ms"
+  },
+  "valueExtractor": "EXTRACT(jsonPayload.durationMs)",
+  "bucketOptions": {
+    "explicitBuckets": {
+      "bounds": [0, 50, 100, 250, 500, 1000, 2000, 5000, 10000]
+    }
+  }
+}
