@@ -78,6 +78,7 @@ steps:
       - --service-account=cloudpulse-api@$PROJECT_ID.iam.gserviceaccount.com
       - --add-cloudsql-instances=$PROJECT_ID:europe-west9:cloudpulse-db
       - --update-secrets=DATABASE_URL=database-url:1
+      - --update-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID
       - --no-traffic
       - --tag=candidate
       - --quiet
@@ -159,7 +160,7 @@ steps:
       - --service-account=cloudpulse-ingest@$PROJECT_ID.iam.gserviceaccount.com
       - --add-cloudsql-instances=$PROJECT_ID:europe-west9:cloudpulse-db
       - --update-secrets=DATABASE_URL=database-url:1,TWELVE_DATA_API_KEY=twelve-data-api-key:1
-      - --update-env-vars=APP_MODE=ingest,INGESTION_QUEUE=projects/$PROJECT_ID/locations/europe-west1/queues/ingest-quotes,INGESTION_TARGET_URL=https://cloudpulse-ingest-595188864600.europe-west9.run.app,INGESTION_INVOKER_SA=cloudpulse-ingest-invoker@$PROJECT_ID.iam.gserviceaccount.com
+      - --update-env-vars=APP_MODE=ingest,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,INGESTION_QUEUE=projects/$PROJECT_ID/locations/europe-west1/queues/ingest-quotes,INGESTION_TARGET_URL=https://cloudpulse-ingest-595188864600.europe-west9.run.app,INGESTION_INVOKER_SA=cloudpulse-ingest-invoker@$PROJECT_ID.iam.gserviceaccount.com
       - --max-instances=1
       - --no-traffic
       - --tag=candidate
