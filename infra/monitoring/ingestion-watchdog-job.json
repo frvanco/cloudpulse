@@ -1,0 +1,47 @@
+{
+  "apiVersion": "run.googleapis.com/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "cloudpulse-ingest-watchdog",
+    "namespace": "595188864600"
+  },
+  "spec": {
+    "template": {
+      "spec": {
+        "parallelism": 1,
+        "taskCount": 1,
+        "template": {
+          "spec": {
+            "serviceAccountName": "cloudpulse-watchdog@cloudpulse-001.iam.gserviceaccount.com",
+            "maxRetries": 0,
+            "timeoutSeconds": "120",
+            "containers": [
+              {
+                "image": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim",
+                "command": [
+                  "bash"
+                ],
+                "args": [
+                  "-c",
+                  "#!/usr/bin/env bash\nset -euo pipefail\n\nPROJECT_ID=\"${GOOGLE_CLOUD_PROJECT:-cloudpulse-001}\"\n\nLAST_DISPATCH=\"$(gcloud logging read \\\n  'resource.type=\"cloud_run_revision\"\n   AND resource.labels.service_name=\"cloudpulse-ingest\"\n   AND jsonPayload.event=\"ingestion.dispatch\"' \\\n  --project=\"$PROJECT_ID\" \\\n  --freshness=26h \\\n  --order=desc \\\n  --limit=1 \\\n  --format='value(timestamp)')\"\n\nif [ -n \"$LAST_DISPATCH\" ]; then\n  printf '{\"severity\":\"INFO\",\"event\":\"ingestion.watchdog.ok\",\"message\":\"Un dispatch existe dans les 26 dernieres heures\",\"lastDispatch\":\"%s\"}\\n' \\\n    \"$LAST_DISPATCH\"\nelse\n  printf '{\"severity\":\"ERROR\",\"event\":\"ingestion.watchdog.missing\",\"message\":\"Aucun dispatch trouve dans les 26 dernieres heures\"}\\n'\nfi\n"
+                ],
+                "env": [
+                  {
+                    "name": "GOOGLE_CLOUD_PROJECT",
+                    "value": "cloudpulse-001"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
