@@ -1,0 +1,47 @@
+steps:
+  - id: init
+    name: hashicorp/terraform:1.17.0
+    dir: infra/terraform
+    entrypoint: terraform
+    args: ["init", "-input=false", "-lockfile=readonly", "-no-color"]
+
+  - id: fmt
+    name: hashicorp/terraform:1.17.0
+    dir: infra/terraform
+    entrypoint: terraform
+    args: ["fmt", "-check", "-recursive"]
+
+  - id: validate
+    name: hashicorp/terraform:1.17.0
+    dir: infra/terraform
+    entrypoint: terraform
+    args: ["validate", "-no-color"]
+
+  - id: plan
+    name: hashicorp/terraform:1.17.0
+    dir: infra/terraform
+    entrypoint: terraform
+    args:
+      - plan
+      - -input=false
+      - -lock-timeout=300s
+      - -no-color
+      - -out=tfplan
+
+  - id: apply
+    name: hashicorp/terraform:1.17.0
+    dir: infra/terraform
+    entrypoint: terraform
+    args:
+      - apply
+      - -input=false
+      - -lock-timeout=300s
+      - -no-color
+      - tfplan
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  env:
+    - TF_IN_AUTOMATION=true
+
+timeout: 1800s
