@@ -26,9 +26,9 @@ resource "google_cloudbuild_trigger" "main" {
   project         = var.project_id
   location        = var.region
   name            = "cloudpulse-api-main"
-  filename        = "cloudbuild.yaml"
+  filename        = "infra/terraform/pipelines/cloudbuild.yaml"
   service_account = google_service_account.build.name
-  included_files  = ["apps/api/**", "cloudbuild.yaml"]
+  included_files  = ["apps/api/**", "infra/terraform/pipelines/cloudbuild.yaml"]
   deletion_policy = "DELETE"
 
   approval_config {
@@ -48,7 +48,7 @@ resource "google_cloudbuild_trigger" "pr" {
   project         = var.project_id
   location        = var.region
   name            = "cloudpulse-api-pr"
-  filename        = "cloudbuild-pr.yaml"
+  filename        = "infra/terraform/pipelines/cloudbuild-pr.yaml"
   service_account = google_service_account.pr.name
   deletion_policy = "DELETE"
 
