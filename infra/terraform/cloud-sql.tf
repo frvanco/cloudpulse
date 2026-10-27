@@ -21,7 +21,7 @@ resource "google_sql_database_instance" "cloudpulse" {
     disk_autoresize       = true
     disk_autoresize_limit = 0
 
-    connector_enforcement       = "NOT_REQUIRED"
+    connector_enforcement       = "REQUIRED"
     enable_dataplex_integration = true
 
     backup_configuration {
@@ -39,7 +39,7 @@ resource "google_sql_database_instance" "cloudpulse" {
     ip_configuration {
       ipv4_enabled   = true
       server_ca_mode = "GOOGLE_MANAGED_INTERNAL_CA"
-      ssl_mode       = "ALLOW_UNENCRYPTED_AND_ENCRYPTED"
+      ssl_mode       = "ENCRYPTED_ONLY"
     }
 
     location_preference {
