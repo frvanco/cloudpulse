@@ -74,13 +74,26 @@ steps:
     entrypoint: gcloud
     args:
       - run
-      - deploy
+      - services
+      - update
       - cloudpulse-api
       - --project=$PROJECT_ID
       - --region=europe-west9
       - --image=europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
       - --no-traffic
-      - --tag=candidate
+      - --quiet
+
+  - id: tag-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update-traffic
+      - cloudpulse-api
+      - --project=$PROJECT_ID
+      - --region=europe-west9
+      - --update-tags=candidate=LATEST
       - --quiet
 
   - id: smoke-test
@@ -152,13 +165,26 @@ steps:
     entrypoint: gcloud
     args:
       - run
-      - deploy
+      - services
+      - update
       - cloudpulse-ingest
       - --project=$PROJECT_ID
       - --region=europe-west9
       - --image=europe-west9-docker.pkg.dev/$PROJECT_ID/cloudpulse/cloudpulse-api:$SHORT_SHA
       - --no-traffic
-      - --tag=candidate
+      - --quiet
+
+  - id: tag-ingest
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update-traffic
+      - cloudpulse-ingest
+      - --project=$PROJECT_ID
+      - --region=europe-west9
+      - --update-tags=candidate=LATEST
       - --quiet
 
   - id: smoke-test-ingest
