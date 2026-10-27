@@ -1,6 +1,16 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.validation.js';
+import { EventPublisher } from '../events/event-publisher.js';
+import {
+  buildPricesIngestedEvent,
+  PRICES_INGESTED,
+} from '../events/prices-ingested.event.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TwelveDataService } from '../twelve-data/twelve-data.service.js';
 import type { TwelveDataTimeSeriesValue } from '../twelve-data/twelve-data.types.js';
@@ -15,7 +25,7 @@ export interface DispatchResult {
 }
 
 export type IngestResult =
-  | { symbol: string; status: 'ingested'; days: number }
+  | { symbol: string; status: 'ingested'; days: number; published: boolean }
   | { symbol: string; status: 'skipped'; reason: string };
 
 @Injectable()
@@ -26,6 +36,7 @@ export class IngestionService {
     private readonly prisma: PrismaService,
     private readonly twelveData: TwelveDataService,
     private readonly queue: TaskQueue,
+    private readonly events: EventPublisher,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -96,13 +107,50 @@ export class IngestionService {
       }),
     );
 
+    const messageId = await this.publishIngested(
+      symbol,
+      company.currency,
+      values,
+    );
+
     const result: IngestResult = {
       symbol,
       status: 'ingested',
       days: values.length,
+      published: messageId !== null,
     };
-    this.logger.log({ event: 'ingestion.symbol', ...result });
+    this.logger.log({ event: 'ingestion.symbol', ...result, messageId });
     return result;
+  }
+
+  // Publié après l'écriture en base, hors transaction : si la publication
+  // échoue, la tâche est rejouée (503), l'upsert réécrit les mêmes lignes et
+  // l'événement est republié. Un consommateur peut donc le recevoir en double.
+  private async publishIngested(
+    symbol: string,
+    currency: string,
+    values: TwelveDataTimeSeriesValue[],
+  ): Promise<string | null> {
+    const event = buildPricesIngestedEvent(symbol, currency, values);
+    if (!event) return null;
+
+    try {
+      return await this.events.publish({
+        type: PRICES_INGESTED,
+        id: event.eventId,
+        data: event,
+        attributes: { symbol },
+      });
+    } catch (error) {
+      this.logger.error({
+        event: 'event.publish',
+        type: PRICES_INGESTED,
+        eventId: event.eventId,
+        outcome: 'error',
+        error: (error as Error).message,
+      });
+      throw new ServiceUnavailableException('Event publication failed');
+    }
   }
 
   private skip(symbol: string, reason: string): IngestResult {

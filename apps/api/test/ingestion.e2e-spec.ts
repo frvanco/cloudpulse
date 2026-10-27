@@ -9,6 +9,10 @@ import {
   type EnqueueResult,
   type QueuedHttpTask,
 } from './../src/ingestion/task-queue.js';
+import {
+  EventPublisher,
+  type DomainEvent,
+} from './../src/events/event-publisher.js';
 
 // File factice : reproduit le dédoublonnage par nom de Cloud Tasks.
 class FakeTaskQueue extends TaskQueue {
@@ -18,6 +22,18 @@ class FakeTaskQueue extends TaskQueue {
     if (this.tasks.has(task.id)) return Promise.resolve('exists');
     this.tasks.set(task.id, task);
     return Promise.resolve('created');
+  }
+}
+
+// Éditeur factice : garde les événements publiés, ou échoue à la demande.
+class FakeEventPublisher extends EventPublisher {
+  readonly events: DomainEvent[] = [];
+  failing = false;
+
+  publish(event: DomainEvent): Promise<string> {
+    if (this.failing) return Promise.reject(new Error('unavailable'));
+    this.events.push(event);
+    return Promise.resolve(String(this.events.length));
   }
 }
 
@@ -42,18 +58,22 @@ describe('Ingestion (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let queue: FakeTaskQueue;
+  let events: FakeEventPublisher;
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(async () => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
     queue = new FakeTaskQueue();
+    events = new FakeEventPublisher();
 
     const moduleFixture = await Test.createTestingModule({
       imports: [IngestAppModule],
     })
       .overrideProvider(TaskQueue)
       .useValue(queue)
+      .overrideProvider(EventPublisher)
+      .useValue(events)
       .compile();
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -113,9 +133,12 @@ describe('Ingestion (e2e)', () => {
         series({ '2026-10-14': '183.25', '2026-10-13': '181.00' }),
       );
 
-      await ingest('NVDA')
-        .expect(200)
-        .expect({ symbol: 'NVDA', status: 'ingested', days: 2 });
+      await ingest('NVDA').expect(200).expect({
+        symbol: 'NVDA',
+        status: 'ingested',
+        days: 2,
+        published: true,
+      });
 
       const url = new URL(String(fetchMock.mock.calls[0][0]));
       expect(url.pathname).toBe('/time_series');
@@ -136,6 +159,60 @@ describe('Ingestion (e2e)', () => {
       ]);
       expect(rows[1].close.toString()).toBe('184');
       expect(rows[1].volume).toBe(150000000n);
+    });
+
+    it('publishes the latest day with its previous close', async () => {
+      await createCompany('NVDA');
+      fetchMock.mockResolvedValueOnce(
+        series({ '2026-10-14': '183.25', '2026-10-13': '181.00' }),
+      );
+
+      await ingest('NVDA').expect(200);
+
+      expect(events.events).toEqual([
+        {
+          type: 'prices.ingested',
+          id: 'NVDA-2026-10-14',
+          attributes: { symbol: 'NVDA' },
+          data: expect.objectContaining({
+            eventId: 'NVDA-2026-10-14',
+            symbol: 'NVDA',
+            date: '2026-10-14',
+            close: '183.25',
+            previousClose: '181.00',
+            currency: 'USD',
+          }) as unknown,
+        },
+      ]);
+    });
+
+    it('does not publish without a previous day', async () => {
+      await createCompany('NVDA');
+      fetchMock.mockResolvedValueOnce(series({ '2026-10-14': '183.25' }));
+
+      const res = await ingest('NVDA').expect(200);
+      expect(res.body.published).toBe(false);
+      expect(events.events).toHaveLength(0);
+    });
+
+    it('returns 503 when publication fails so Cloud Tasks replays the task', async () => {
+      await createCompany('NVDA');
+      // Une Response neuve par appel : son corps ne se lit qu'une fois.
+      fetchMock.mockImplementation(() =>
+        Promise.resolve(
+          series({ '2026-10-14': '183.25', '2026-10-13': '181.00' }),
+        ),
+      );
+      events.failing = true;
+
+      await ingest('NVDA').expect(503);
+      // Les cours sont déjà en base : le rejeu les réécrit puis publie.
+      expect(await prisma.dailyPrice.count()).toBe(2);
+
+      events.failing = false;
+      await ingest('NVDA').expect(200);
+      expect(await prisma.dailyPrice.count()).toBe(2);
+      expect(events.events).toHaveLength(1);
     });
 
     it('skips an unknown company without calling the provider', async () => {

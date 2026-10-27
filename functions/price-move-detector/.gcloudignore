@@ -1,0 +1,5 @@
+# Envoyé à Cloud Build lors du déploiement : les sources, pas les artefacts
+# locaux (dépendances et build sont refaits par les buildpacks).
+.gcloudignore
+node_modules/
+dist/

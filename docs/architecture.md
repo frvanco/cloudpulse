@@ -104,6 +104,21 @@ PR touchant infra/terraform/**  ─▶ infra-plan  (SA tf-plan, lecture seule) :
 Fusion sur main                  ─▶ infra-apply (SA tf-apply) : approbation manuelle, puis plan -out et apply du plan
 ```
 
+## Événements (phase 8)
+
+Voir [ADR 0007](adr/0007-evenements-pubsub.md).
+
+```
+cloudpulse-ingest (après l'upsert de daily_price)
+   │  publish (roles/pubsub.publisher sur le topic)
+   ▼
+Topic prices-ingested
+   ├─▶ abonnement push créé par Eventarc ──▶ Cloud Run function price-move-detector
+   │                                          └─ log price.move ──▶ métrique ──▶ alerte
+   ├─▶ abonnement BigQuery ──▶ table d'archive
+   └─ chaque abonnement : retry policy + dead-letter topic
+```
+
 ## Principes
 
 - **Stateless** : aucun état en mémoire ou sur disque local (contrat Cloud Run).
@@ -119,7 +134,8 @@ Fusion sur main                  ─▶ infra-apply (SA tf-apply) : approbation 
 Client HTTP ──▶ Cloud Run (API NestJS) ──▶ Cloud SQL PostgreSQL
 
 Cloud Scheduler ──▶ Cloud Run (ingestion) ──▶ Cloud Tasks ──▶ Cloud Run (ingestion) ──▶ Twelve Data
-                                                                              └──▶ Cloud SQL
+                                                                              ├──▶ Cloud SQL
+                                                                              └──▶ Pub/Sub ──▶ function, BigQuery
 ```
 
 Transverses : Secret Manager, Artifact Registry, Cloud Build, Cloud Logging/Monitoring, Terraform.

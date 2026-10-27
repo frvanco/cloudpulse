@@ -1,0 +1,27 @@
+{
+  "name": "price-move-detector",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "gcp-build": "npm run build",
+    "start": "functions-framework --target=detectPriceMove --signature-type=cloudevent",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.12"
+  }
+}
