@@ -27,3 +27,7 @@ npm-debug.log*
 
 # Client Prisma généré (npm run prisma:generate / postinstall)
 apps/api/src/generated/
+
+# Plans Terraform locaux
+tfplan
+*.tfplan
