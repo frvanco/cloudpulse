@@ -21,7 +21,13 @@ steps:
     name: hashicorp/terraform:1.17.0
     dir: infra/terraform
     entrypoint: terraform
+    secretEnv: ["TF_VAR_approver_member"]
     args: ["plan", "-input=false", "-lock=false", "-no-color"]
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/terraform-approver-member/versions/latest
+      env: TF_VAR_approver_member
 
 options:
   logging: CLOUD_LOGGING_ONLY

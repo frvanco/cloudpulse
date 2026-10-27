@@ -23,3 +23,19 @@ resource "google_secret_manager_secret" "twelve_data_api_key" {
     }
   }
 }
+
+# Valeur non sensible mais hors du dépôt : lue par les pipelines Terraform.
+resource "google_secret_manager_secret" "terraform_approver_member" {
+  project             = var.project_id
+  secret_id           = "terraform-approver-member"
+  deletion_policy     = "DELETE"
+  deletion_protection = false
+
+  replication {
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
+  }
+}

@@ -61,6 +61,20 @@ leur retrait de Terraform ne doit pas les désactiver.
 
 Les ressources IAM des secrets ne lisent pas leurs valeurs.
 
+## CI Terraform
+
+| Identité | Ressource | Rôle | Justification |
+|---|---|---|---|
+| tf-plan | Secret terraform-approver-member | secretmanager.secretAccessor | Valeur de `approver_member` pour le plan |
+| tf-apply | Secret terraform-approver-member | secretmanager.secretAccessor | Valeur de `approver_member` pour le plan de l'apply |
+| `var.approver_member` | Projet | cloudbuild.builds.approver | Approbation des builds `infra-apply` |
+
+L'approbateur n'est pas écrit dans le dépôt : la variable `approver_member` n'a pas
+de valeur par défaut. En CI, elle est lue dans le secret `terraform-approver-member`
+(`secretEnv` → `TF_VAR_approver_member`). En local, elle vient de `terraform.tfvars`
+(ignoré par Git) ou de la variable d'environnement `TF_VAR_approver_member`.
+Le secret et sa valeur sont créés hors Terraform, puis importés (`imports.tf`).
+
 ## Utilisateur PostgreSQL hors Terraform
 
 L'utilisateur `cloudpulse_app` de l'instance `cloudpulse-db` reste géré

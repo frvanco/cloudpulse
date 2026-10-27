@@ -93,6 +93,7 @@ resource "google_cloudbuild_trigger" "infra_plan" {
     google_project_iam_member.terraform_ci_logs,
     google_storage_bucket_iam_member.tf_plan_state_read,
     google_storage_bucket_iam_member.terraform_ci_sources_read,
+    google_secret_manager_secret_iam_member.terraform_ci_approver_member,
   ]
 }
 
@@ -126,5 +127,6 @@ resource "google_cloudbuild_trigger" "infra_apply" {
     google_storage_bucket_iam_member.tf_apply_bucket_iam,
     google_storage_bucket_iam_member.terraform_ci_sources_read,
     google_project_iam_member.terraform_build_approver,
+    google_secret_manager_secret_iam_member.terraform_ci_approver_member,
   ]
 }
