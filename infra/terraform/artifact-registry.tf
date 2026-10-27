@@ -32,3 +32,5 @@ resource "google_artifact_registry_repository" "cloudpulse" {
     }
   }
 }
+
+# Vérification de la détection de dérive par la CI.
