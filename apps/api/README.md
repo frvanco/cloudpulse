@@ -107,4 +107,4 @@ docker run --rm --network cloudpulse_default \
   -e DATABASE_URL=postgresql://cloudpulse:cloudpulse@db:5432/cloudpulse cloudpulse-migrate
 ```
 
-CI : les changements de l’API sur main sont validés par Cloud Build.
+CI/CD : Cloud Build, pipelines dans `infra/terraform/pipelines/` (PR : tests et build ; `main` : migrations, déploiement sans trafic, test de fumée, promotion).
