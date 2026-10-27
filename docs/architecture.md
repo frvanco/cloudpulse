@@ -92,9 +92,17 @@ Toute l'infrastructure est décrite dans `infra/terraform/` (voir [ADR 0006](adr
 | `cloud-tasks.tf`, `scheduler.tf` | File d'ingestion, déclenchements planifiés |
 | `logging-metrics.tf`, `monitoring-*.tf`, `dashboards/` | Métriques basées sur les logs, alertes, SLO, tableau de bord |
 | `cloud-build.tf`, `pipelines/` | Connexion GitHub, déclencheurs, définitions des pipelines |
+| `terraform-ci-iam.tf` | Identités de la CI Terraform : `tf-plan` (lecture seule) et `tf-apply` (administration, rôles listés et rôles personnalisés) |
 
 Répartition des responsabilités : **Terraform** possède la configuration ; **Cloud Build**
 déploie une image et gère le trafic entre révisions.
+
+Les changements d'infrastructure passent eux aussi par Cloud Build :
+
+```
+PR touchant infra/terraform/**  ─▶ infra-plan  (SA tf-plan, lecture seule) : fmt, validate, plan -lock=false
+Fusion sur main                  ─▶ infra-apply (SA tf-apply) : approbation manuelle, puis plan -out et apply du plan
+```
 
 ## Principes
 

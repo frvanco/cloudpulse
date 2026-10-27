@@ -32,7 +32,7 @@ que lorsqu'il a une vraie justification architecturale.
 - [x] **Phase 5** — CI/CD : Cloud Build → Artifact Registry → Cloud Run, migrations en Cloud Run Job ([ADR 0004](docs/adr/0004-ci-cd-avant-ingestion.md))
 - [x] **Phase 4** — Ingestion quotidienne : Cloud Scheduler, Cloud Tasks ([ADR 0005](docs/adr/0005-ingestion-cloud-tasks.md))
 - [x] **Phase 6** — Observabilité : Logging, Monitoring, Error Reporting
-- [ ] **Phase 7** — Terraform : import de l'infrastructure existante ([ADR 0006](docs/adr/0006-terraform.md)) — en cours
+- [x] **Phase 7** — Terraform : import de l'infrastructure existante, plan sur PR et apply approuvé dans Cloud Build ([ADR 0006](docs/adr/0006-terraform.md))
 - [ ] **Phase 8** — Enrichissement : frontend SvelteKit, historique, graphiques, watchlist, alertes
 
 ## Démarrage local
