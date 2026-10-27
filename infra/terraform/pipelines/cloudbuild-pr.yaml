@@ -1,0 +1,37 @@
+steps:
+  - id: test
+    name: node:24
+    dir: apps/api
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        npm ci
+        npm run lint
+        npm test
+
+  - id: build-api
+    name: gcr.io/cloud-builders/docker
+    dir: apps/api
+    args:
+      - build
+      - -t
+      - cloudpulse-api:pr
+      - .
+
+  - id: build-migrate
+    name: gcr.io/cloud-builders/docker
+    dir: apps/api
+    args:
+      - build
+      - --target
+      - migrate
+      - -t
+      - cloudpulse-migrate:pr
+      - .
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
