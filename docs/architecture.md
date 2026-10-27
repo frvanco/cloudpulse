@@ -73,8 +73,28 @@ Fusion sur main ──▶ déclencheur cloudpulse-api-main (SA cloudpulse-build)
 
 - Un échec à n'importe quelle étape arrête le pipeline : la production reste sur la révision précédente.
 - Rollback : redirection du trafic vers une révision existante (pas de rebuild ; tags immuables).
-- Artifact Registry : cleanup policy versionnée dans `infra/artifact-registry/cleanup-policy.json`.
+- Pipelines : `infra/terraform/pipelines/cloudbuild.yaml` (main) et `cloudbuild-pr.yaml` (PR) ; le pipeline ne fixe que l'image, les tags et le trafic.
 - Migrations compatibles avec la version N-1 du code (*expand and contract*).
+
+## Infrastructure as Code (phase 7)
+
+Toute l'infrastructure est décrite dans `infra/terraform/` (voir [ADR 0006](adr/0006-terraform.md)),
+état distant dans le bucket `cloudpulse-001-tfstate` :
+
+| Fichier | Contenu |
+|---|---|
+| `apis.tf` | APIs du projet (`disable_on_destroy = false`) |
+| `service-accounts.tf`, `iam-*.tf`, `IAM-AUDIT.md` | Identités et liaisons IAM (uniquement `*_iam_member`), audit justifié |
+| `artifact-registry.tf` | Dépôt d'images, tags immuables, cleanup policies |
+| `secrets.tf` | Secrets (sans leurs valeurs) |
+| `cloud-sql.tf` | Instance et base, `deletion_protection` + `prevent_destroy` |
+| `cloud-run-services.tf`, `cloud-run-jobs.tf` | Configuration des services et jobs ; l'image et le trafic sont gérés par le pipeline (`ignore_changes`) |
+| `cloud-tasks.tf`, `scheduler.tf` | File d'ingestion, déclenchements planifiés |
+| `logging-metrics.tf`, `monitoring-*.tf`, `dashboards/` | Métriques basées sur les logs, alertes, SLO, tableau de bord |
+| `cloud-build.tf`, `pipelines/` | Connexion GitHub, déclencheurs, définitions des pipelines |
+
+Répartition des responsabilités : **Terraform** possède la configuration ; **Cloud Build**
+déploie une image et gère le trafic entre révisions.
 
 ## Principes
 
