@@ -113,14 +113,13 @@ Fusion sur main                  ─▶ infra-apply (SA tf-apply) : approbation 
 - **Maîtrise des coûts** : scale-to-zero, `max-instances` bas, alerte budgétaire.
 - **Observabilité** : logs JSON structurés sur stdout (Cloud Logging), corrélés aux traces, exceptions remontées dans Error Reporting, événements métier (`event`) exploitables en métriques basées sur les logs. Voir `apps/api/README.md`.
 
-## Architecture cible (introduite progressivement)
+## Architecture en place
 
 ```
-SvelteKit ──▶ Cloud Run (API NestJS) ──▶ Cloud SQL PostgreSQL
+Client HTTP ──▶ Cloud Run (API NestJS) ──▶ Cloud SQL PostgreSQL
 
 Cloud Scheduler ──▶ Cloud Run (ingestion) ──▶ Cloud Tasks ──▶ Cloud Run (ingestion) ──▶ Twelve Data
                                                                               └──▶ Cloud SQL
-Pub/Sub : événements « cours mis à jour » pour les alertes (phase 8)
 ```
 
 Transverses : Secret Manager, Artifact Registry, Cloud Build, Cloud Logging/Monitoring, Terraform.

@@ -11,7 +11,6 @@ que lorsqu'il a une vraie justification architecturale.
 
 | Couche | Technologies |
 |---|---|
-| Frontend | SvelteKit, TypeScript |
 | Backend | NestJS, TypeScript, Prisma |
 | Base de données | PostgreSQL / Cloud SQL |
 | Données de marché | [Twelve Data](https://twelvedata.com/docs) |
@@ -33,7 +32,6 @@ que lorsqu'il a une vraie justification architecturale.
 - [x] **Phase 4** — Ingestion quotidienne : Cloud Scheduler, Cloud Tasks ([ADR 0005](docs/adr/0005-ingestion-cloud-tasks.md))
 - [x] **Phase 6** — Observabilité : Logging, Monitoring, Error Reporting
 - [x] **Phase 7** — Terraform : import de l'infrastructure existante, plan sur PR et apply approuvé dans Cloud Build ([ADR 0006](docs/adr/0006-terraform.md))
-- [ ] **Phase 8** — Enrichissement : frontend SvelteKit, historique, graphiques, watchlist, alertes
 
 ## Démarrage local
 
