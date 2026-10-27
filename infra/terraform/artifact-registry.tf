@@ -7,7 +7,7 @@ resource "google_artifact_registry_repository" "cloudpulse" {
   mode          = "STANDARD_REPOSITORY"
 
   deletion_policy        = "DELETE"
-  cleanup_policy_dry_run = true
+  cleanup_policy_dry_run = false
 
   docker_config {
     immutable_tags = true
@@ -19,16 +19,6 @@ resource "google_artifact_registry_repository" "cloudpulse" {
 
     most_recent_versions {
       keep_count = 10
-    }
-  }
-
-  cleanup_policies {
-    id     = "delete-untagged-after-7-days"
-    action = "DELETE"
-
-    condition {
-      tag_state  = "UNTAGGED"
-      older_than = "604800s"
     }
   }
 

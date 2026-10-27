@@ -1,7 +1,7 @@
 resource "google_cloud_tasks_queue_iam_member" "ingest_enqueue" {
-  project  = var.project_id
-  location = "europe-west1"
-  name     = "ingest-quotes"
+  project  = google_cloud_tasks_queue.ingest_quotes.project
+  location = google_cloud_tasks_queue.ingest_quotes.location
+  name     = google_cloud_tasks_queue.ingest_quotes.name
   role     = "roles/cloudtasks.enqueuer"
   member   = google_service_account.ingest.member
 }

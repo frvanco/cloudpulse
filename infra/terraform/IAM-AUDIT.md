@@ -60,3 +60,15 @@ Les 15 APIs sélectionnées utilisent disable_on_destroy = false :
 leur retrait de Terraform ne doit pas les désactiver.
 
 Les ressources IAM des secrets ne lisent pas leurs valeurs.
+
+## Utilisateur PostgreSQL hors Terraform
+
+L'utilisateur `cloudpulse_app` de l'instance `cloudpulse-db` reste géré
+hors Terraform. Son mot de passe n'est ni fourni à Terraform ni lu depuis
+Secret Manager par Terraform. La connexion applicative reste stockée dans
+la version du secret `database-url`.
+
+Les arrêts et démarrages manuels de l'instance sont conservés grâce à
+ignore_changes sur settings[0].activation_policy.
+La croissance automatique du disque est conservée grâce à ignore_changes
+sur settings[0].disk_size.
