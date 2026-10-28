@@ -37,6 +37,9 @@ locals {
     "roles/secretmanager.viewer",
     "roles/serviceusage.serviceUsageViewer",
     "roles/serviceusage.serviceUsageConsumer",
+    "roles/pubsub.viewer",
+    "roles/eventarc.viewer",
+    "roles/bigquery.metadataViewer",
   ])
 
   # Administration des familles de ressources présentes dans cet état.
@@ -57,6 +60,9 @@ locals {
     "roles/secretmanager.viewer",
     "roles/serviceusage.serviceUsageAdmin",
     "roles/serviceusage.serviceUsageConsumer",
+    "roles/pubsub.admin",
+    "roles/eventarc.admin",
+    "roles/bigquery.admin",
   ])
 
   # Identités utilisées par les services, jobs et déclencheurs gérés.
@@ -70,6 +76,8 @@ locals {
     watchdog       = google_service_account.watchdog
     tf_plan        = google_service_account.tf_plan
     tf_apply       = google_service_account.tf_apply
+    price_move     = data.google_service_account.price_move
+    eventarc       = data.google_service_account.eventarc
   }
 }
 
@@ -184,4 +192,15 @@ resource "google_project_iam_member" "terraform_build_approver" {
   project = var.project_id
   role    = "roles/cloudbuild.builds.approver"
   member  = var.approver_member
+}
+
+# Comptes existants, qui seront importés comme ressources dans la PR 2.
+data "google_service_account" "price_move" {
+  project    = var.project_id
+  account_id = "cloudpulse-price-move"
+}
+
+data "google_service_account" "eventarc" {
+  project    = var.project_id
+  account_id = "cloudpulse-eventarc"
 }
