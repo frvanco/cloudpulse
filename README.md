@@ -11,8 +11,8 @@ que lorsqu'il a une vraie justification architecturale.
 
 | Couche | Technologies |
 |---|---|
-| Frontend | SvelteKit, TypeScript |
 | Backend | NestJS, TypeScript, Prisma |
+| Fonctions | Cloud Run functions (Functions Framework, TypeScript) |
 | Base de données | PostgreSQL / Cloud SQL |
 | Données de marché | [Twelve Data](https://twelvedata.com/docs) |
 | Infra | Docker, Google Cloud, Terraform |
@@ -32,8 +32,12 @@ que lorsqu'il a une vraie justification architecturale.
 - [x] **Phase 5** — CI/CD : Cloud Build → Artifact Registry → Cloud Run, migrations en Cloud Run Job ([ADR 0004](docs/adr/0004-ci-cd-avant-ingestion.md))
 - [x] **Phase 4** — Ingestion quotidienne : Cloud Scheduler, Cloud Tasks ([ADR 0005](docs/adr/0005-ingestion-cloud-tasks.md))
 - [x] **Phase 6** — Observabilité : Logging, Monitoring, Error Reporting
-- [ ] **Phase 7** — Terraform : import de l'infrastructure existante ([ADR 0006](docs/adr/0006-terraform.md)) — en cours
-- [ ] **Phase 8** — Enrichissement : frontend SvelteKit, historique, graphiques, watchlist, alertes
+- [x] **Phase 7** — Terraform : import de l'infrastructure existante, plan sur PR et apply approuvé dans Cloud Build ([ADR 0006](docs/adr/0006-terraform.md))
+- [ ] **Phase 8** — Événements : Pub/Sub, Eventarc, Cloud Run functions, abonnement BigQuery, dead-letter ([ADR 0007](docs/adr/0007-evenements-pubsub.md))
+- [ ] **Phase 9** — Livraison progressive : Cloud Deploy, canary sur Cloud Run
+- [ ] **Phase 10** — GKE Autopilot : même image, Workload Identity, Gateway, HPA
+- [ ] **Phase 11** — Traces et performance : Cloud Trace (OpenTelemetry), Cloud Profiler
+- [ ] *(optionnelle)* Exposition : API Gateway ou load balancer + Cloud Armor, IAP
 
 ## Démarrage local
 

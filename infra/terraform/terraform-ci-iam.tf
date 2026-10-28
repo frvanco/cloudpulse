@@ -183,5 +183,5 @@ resource "google_service_account_iam_member" "tf_apply_act_as" {
 resource "google_project_iam_member" "terraform_build_approver" {
   project = var.project_id
   role    = "roles/cloudbuild.builds.approver"
-  member  = "user:antoine.vancompernolle@gmail.com"
+  member  = var.approver_member
 }

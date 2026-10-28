@@ -46,6 +46,12 @@ const envSchema = z
     // Nombre de jours d'historique demandés à chaque ingestion (rattrape les
     // jours manqués ; l'upsert rend les chevauchements sans effet).
     INGESTION_HISTORY_DAYS: z.coerce.number().int().min(1).max(30).default(5),
+    // Topic Pub/Sub des événements (projects/PROJET/topics/TOPIC). Absent :
+    // aucun événement publié.
+    EVENTS_TOPIC: z
+      .string()
+      .regex(/^projects\/[^/]+\/topics\/[^/]+$/)
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (env.APP_MODE !== 'ingest') return;

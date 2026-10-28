@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { eventPublisherProvider } from '../events/event-publisher.js';
 import { TwelveDataModule } from '../twelve-data/twelve-data.module.js';
 import { IngestionController } from './ingestion.controller.js';
 import { IngestionService } from './ingestion.service.js';
@@ -10,6 +11,7 @@ import { CloudTasksQueue, TaskQueue } from './task-queue.js';
   providers: [
     IngestionService,
     { provide: TaskQueue, useClass: CloudTasksQueue },
+    eventPublisherProvider,
   ],
 })
 export class IngestionModule {}

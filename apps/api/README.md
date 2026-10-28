@@ -18,7 +18,7 @@ Mode `ingest` uniquement (appelées par Cloud Scheduler et Cloud Tasks) :
 | Méthode | Route | Description |
 |---|---|---|
 | POST | `/internal/ingestion/dispatch` | Crée une tâche Cloud Tasks par entreprise (nom `SYMBOLE-AAAA-MM-JJ`, dédoublonné) |
-| POST | `/internal/ingestion/symbols/:symbol` | Récupère les derniers cours journaliers (`time_series`) et les upsert dans `daily_price`. 200 si traité ou ignoré définitivement (entreprise ou symbole inconnu), 429/502 si erreur passagère (Cloud Tasks réessaie) |
+| POST | `/internal/ingestion/symbols/:symbol` | Récupère les derniers cours journaliers (`time_series`), les upsert dans `daily_price` puis publie `prices.ingested`. 200 si traité ou ignoré définitivement (entreprise ou symbole inconnu), 429/502/503 si erreur passagère (Cloud Tasks réessaie) |
 
 `/health` et `/health/ready` existent dans les deux modes.
 
@@ -40,6 +40,7 @@ Variables d'environnement, validées au démarrage (`src/config/env.validation.t
 | `INGESTION_TARGET_URL` | en mode `ingest` | — (URL du service d'ingestion : cible des tâches et audience OIDC) |
 | `INGESTION_INVOKER_SA` | en mode `ingest` | — (service account qui signe le jeton OIDC des tâches) |
 | `INGESTION_HISTORY_DAYS` | non | `5` |
+| `EVENTS_TOPIC` | non | — (`projects/P/topics/T` ; absent : aucun événement publié) |
 | `LOG_FORMAT` | non | `json` en production, `pretty` sinon |
 | `GOOGLE_CLOUD_PROJECT` | non | — (ID du projet : relie chaque log à la trace de sa requête) |
 
@@ -66,7 +67,23 @@ interprétée par Cloud Logging :
 | `quote.served` | `symbol`, `source` (`cache` / `provider` / `stale`) | INFO, WARNING si `stale` |
 | `provider.request` | `path`, `outcome` (`ok` / `error` / `unreachable`), `code`, `durationMs` | INFO / WARNING / ERROR |
 | `ingestion.dispatch` | `date`, `companies`, `enqueued`, `alreadyQueued` | INFO |
-| `ingestion.symbol` | `symbol`, `status` (`ingested` / `skipped`), `days`, `reason` | INFO / WARNING |
+| `ingestion.symbol` | `symbol`, `status` (`ingested` / `skipped`), `days`, `published`, `messageId`, `reason` | INFO / WARNING |
+| `event.publish` | `type`, `eventId`, `outcome` (`error`), `error` | ERROR |
+
+## Événements publiés (Pub/Sub)
+
+Si `EVENTS_TOPIC` est défini, le mode `ingest` publie après chaque ingestion réussie
+(voir [ADR 0007](../../docs/adr/0007-evenements-pubsub.md)) :
+
+| `eventType` | Attributs | Corps (JSON) |
+|---|---|---|
+| `prices.ingested` | `eventType`, `eventId`, `symbol` | `eventId` (`SYMBOLE-AAAA-MM-JJ`), `symbol`, `date`, `close`, `previousClose`, `currency`, `ingestedAt` |
+
+Les prix sont des chaînes décimales. Pas de message si la série ne contient qu'un jour
+(pas de clôture précédente). Si la publication échoue, la route répond 503 et Cloud Tasks
+rejoue la tâche : un consommateur peut recevoir le même `eventId` deux fois.
+
+En local, l'émulateur Pub/Sub est utilisé si `PUBSUB_EMULATOR_HOST` est défini.
 
 ## Commandes
 
