@@ -189,6 +189,11 @@ resource "google_cloud_run_v2_service" "ingest" {
         }
       }
 
+      env {
+        name  = "EVENTS_TOPIC"
+        value = "projects/${var.project_id}/topics/prices-ingested"
+      }
+
       ports {
         container_port = 8080
         name           = "http1"

@@ -15,6 +15,9 @@ locals {
     "serviceusage.googleapis.com",
     "sqladmin.googleapis.com",
     "storage.googleapis.com",
+    "bigquery.googleapis.com",
+    "eventarc.googleapis.com",
+    "pubsub.googleapis.com",
   ])
 }
 
