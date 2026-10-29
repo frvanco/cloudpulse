@@ -33,7 +33,6 @@ resource "google_pubsub_subscription" "prices_ingested_bq" {
   deletion_policy            = "DELETE"
 
   bigquery_config {
-    # Référence à la table ajoutée lors de son import.
     table            = "${google_bigquery_table.prices_ingested.project}:${google_bigquery_table.prices_ingested.dataset_id}.${google_bigquery_table.prices_ingested.table_id}"
     use_topic_schema = true
     write_metadata   = true
@@ -49,9 +48,9 @@ resource "google_pubsub_subscription" "prices_ingested_bq" {
     maximum_backoff = "600s"
   }
 
-  # Politique existante : expiration après 31 jours sans activité.
+  # Cet abonnement doit rester disponible même sans activité.
   expiration_policy {
-    ttl = "2678400s"
+    ttl = ""
   }
 }
 
@@ -63,8 +62,8 @@ resource "google_pubsub_subscription" "prices_ingested_dlq_inspect" {
   message_retention_duration = "604800s"
   deletion_policy            = "DELETE"
 
-  # Politique existante, conservée pour cet import.
+  # L'abonnement d'inspection du rebut ne doit jamais expirer.
   expiration_policy {
-    ttl = "2678400s"
+    ttl = ""
   }
 }
