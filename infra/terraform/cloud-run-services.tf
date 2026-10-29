@@ -191,7 +191,7 @@ resource "google_cloud_run_v2_service" "ingest" {
 
       env {
         name  = "EVENTS_TOPIC"
-        value = "projects/${var.project_id}/topics/prices-ingested"
+        value = google_pubsub_topic.prices_ingested.id
       }
 
       ports {

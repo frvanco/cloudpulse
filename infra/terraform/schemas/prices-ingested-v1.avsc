@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "PricesIngestedV1",
+  "namespace": "cloudpulse.events",
+  "fields": [
+    { "name": "eventId",       "type": "string" },
+    { "name": "symbol",        "type": "string" },
+    { "name": "date",          "type": "string" },
+    { "name": "close",         "type": "string" },
+    { "name": "previousClose", "type": "string" },
+    { "name": "currency",      "type": "string" },
+    { "name": "ingestedAt",    "type": "string" }
+  ]
+}
