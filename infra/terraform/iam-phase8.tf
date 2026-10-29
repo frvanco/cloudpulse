@@ -1,9 +1,9 @@
-data "google_project" "phase8" {
+data "google_project" "current" {
   project_id = var.project_id
 }
 
 locals {
-  pubsub_service_agent_member = "serviceAccount:service-${data.google_project.phase8.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  pubsub_service_agent_member = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
 # Publication des événements après ingestion.
