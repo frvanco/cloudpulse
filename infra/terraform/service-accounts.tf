@@ -53,3 +53,19 @@ resource "google_service_account" "watchdog" {
   disabled        = false
   deletion_policy = "DELETE"
 }
+
+resource "google_service_account" "price_move" {
+  project         = var.project_id
+  account_id      = "cloudpulse-price-move"
+  display_name    = "CloudPulse - détection des variations"
+  disabled        = false
+  deletion_policy = "DELETE"
+}
+
+resource "google_service_account" "eventarc" {
+  project         = var.project_id
+  account_id      = "cloudpulse-eventarc"
+  display_name    = "CloudPulse - invocation Eventarc"
+  disabled        = false
+  deletion_policy = "DELETE"
+}
