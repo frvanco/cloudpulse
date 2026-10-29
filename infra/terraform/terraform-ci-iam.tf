@@ -62,7 +62,6 @@ locals {
     "roles/serviceusage.serviceUsageConsumer",
     "roles/pubsub.admin",
     "roles/eventarc.admin",
-    "roles/bigquery.admin",
   ])
 
   # Identités utilisées par les services, jobs et déclencheurs gérés.
@@ -192,4 +191,37 @@ resource "google_project_iam_member" "terraform_build_approver" {
   project = var.project_id
   role    = "roles/cloudbuild.builds.approver"
   member  = var.approver_member
+}
+
+# Métadonnées et IAM BigQuery : aucun droit direct de lecture des lignes
+# (tables.getData), d'écriture des lignes (tables.updateData) ou de requête
+# (jobs.create). Les droits IAM privilégiés de tf-apply restent indépendants.
+resource "google_project_iam_custom_role" "terraform_bigquery_metadata" {
+  project     = var.project_id
+  role_id     = "terraformBigQueryMetadataAdmin"
+  title       = "Terraform BigQuery Metadata Admin"
+  description = "Manage BigQuery datasets, table metadata and IAM without data or query permissions."
+  stage       = "GA"
+
+  permissions = [
+    "bigquery.datasets.create",
+    "bigquery.datasets.delete",
+    "bigquery.datasets.get",
+    "bigquery.datasets.getIamPolicy",
+    "bigquery.datasets.setIamPolicy",
+    "bigquery.datasets.update",
+    "bigquery.tables.create",
+    "bigquery.tables.delete",
+    "bigquery.tables.get",
+    "bigquery.tables.getIamPolicy",
+    "bigquery.tables.list",
+    "bigquery.tables.setIamPolicy",
+    "bigquery.tables.update",
+  ]
+}
+
+resource "google_project_iam_member" "tf_apply_bigquery_metadata" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.terraform_bigquery_metadata.name
+  member  = google_service_account.tf_apply.member
 }

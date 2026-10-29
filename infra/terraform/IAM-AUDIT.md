@@ -4,14 +4,14 @@ Projet : `cloudpulse-001`. Région principale : `europe-west9`.
 
 ## État de la migration
 
-La PR des droits CI de la phase 8 a été appliquée. La PR d’import est en préparation :
-le dernier plan vérifié annonce **21 to import, 0 to add, 0 to change, 0 to destroy**.
-Ces 21 ressources ne seront considérées comme importées qu’après le succès de
-l’apply de cette PR en CI.
+Les droits CI de la phase 8 ont été appliqués, puis les 21 ressources prévues
+ont été importées avec succès par la CI. Les blocs d’import ont ensuite été
+retirés dans une PR séparée. Le plan a été vérifié avec **No changes** après
+cette migration.
 
-Les blocs de `imports-phase8.tf` restent présents jusqu’à cet apply.
-Leur suppression fera ensuite l’objet d’une PR séparée, dont le plan devra
-afficher **No changes**.
+Les corrections de durcissement déclarées dans cette configuration doivent
+être appliquées par la chaîne habituelle : plan en PR, fusion, approbation
+du build d’apply, puis contrôle du résultat.
 
 ## Identités et conventions
 
@@ -37,17 +37,16 @@ Les rôles personnalisés sont indiqués par leur identifiant propre.
 | tf-plan | tf-plan | Lecture de l’infrastructure et calcul des plans |
 | tf-apply | tf-apply | Application de la configuration après approbation |
 
-Les neuf comptes applicatifs et les deux comptes CI sont déclarés comme
-ressources Terraform dans la configuration cible. Les deux comptes
-`price-move` et `eventarc` font partie des imports en attente de la phase 8.
+Les neuf comptes applicatifs et les deux comptes CI sont gérés par Terraform.
+Les comptes `price-move` et `eventarc` ont été importés pendant la phase 8.
 
 Le service agent Pub/Sub est identifié dans le code à partir de
-`data.google_project.phase8.number` :
+`data.google_project.current.number` :
 `service-NUMERO_PROJET@gcp-sa-pubsub.iam.gserviceaccount.com`.
 Son compte est géré par Google ; seules les liaisons explicitement ajoutées
 pour la phase 8 sont gérées par Terraform.
 
-## Liaisons applicatives déjà importées
+## Liaisons applicatives importées avant la phase 8
 
 | Identité | Ressource | Rôle | Justification |
 |---|---|---|---|
@@ -78,7 +77,7 @@ pour la phase 8 sont gérées par Terraform.
 | build | Dépôt cloudpulse, europe-west9 | artifactregistry.writer | Publication des images |
 | build | Bucket cloudpulse-001_cloudbuild | storage.objectViewer | Lecture des sources des builds manuels |
 
-## Liaisons applicatives à importer avec la phase 8
+## Liaisons applicatives importées pendant la phase 8
 
 | Identité | Ressource | Rôle | Justification |
 |---|---|---|---|
@@ -90,8 +89,8 @@ pour la phase 8 sont gérées par Terraform.
 | Service agent Pub/Sub | Table cloudpulse_events.prices_ingested | bigquery.dataEditor | Écriture des événements et des métadonnées |
 | build | Projet | run.builder | Construction de la fonction depuis les sources |
 
-Les deux tableaux applicatifs représentent 33 liaisons : 26 déjà importées
-et 7 à importer dans cette phase. Les liaisons CI sont inventoriées séparément.
+Les deux tableaux applicatifs représentent 33 liaisons gérées : 26 importées
+avant la phase 8 et 7 importées pendant cette phase. Les liaisons CI sont inventoriées séparément.
 
 ## CI Terraform
 
@@ -144,7 +143,6 @@ la politique IAM de la table (`bigquery.tables.getIamPolicy`).
 | tf-apply | Projet | serviceusage.serviceUsageConsumer | Utilisation des API du projet |
 | tf-apply | Projet | pubsub.admin | Gestion des topics, schémas, abonnements et de leur IAM |
 | tf-apply | Projet | eventarc.admin | Gestion des triggers Eventarc |
-| tf-apply | Projet | bigquery.admin | Gestion des datasets, tables et de leur IAM, dont getIamPolicy et setIamPolicy |
 
 Les privilèges de `tf-apply`, notamment `resourcemanager.projectIamAdmin`,
 sont élevés. Les rôles personnalisés de métadonnées ne constituent donc pas
@@ -163,6 +161,7 @@ la protection de main et l’approbation du build d’apply.
 | tf-plan | Bucket cloudpulse-001_cloudbuild | storage.objectViewer | Lecture des sources Cloud Build |
 | tf-apply | Bucket cloudpulse-001_cloudbuild | storage.objectViewer | Lecture des sources Cloud Build |
 | tf-apply | Projet | terraformSecretMetadataAdmin (personnalisé) | Gestion des métadonnées et de l’IAM des secrets |
+| tf-apply | Projet | terraformBigQueryMetadataAdmin (personnalisé) | Gestion des datasets, des métadonnées de tables et de leur IAM, sans permissions directes de données ou de requête |
 | tf-apply | Bucket cloudpulse-001-tfstate | terraformBucketIamAdmin (personnalisé) | Lecture des métadonnées et gestion de l’IAM du bucket |
 | tf-apply | Bucket cloudpulse-001_cloudbuild | terraformBucketIamAdmin (personnalisé) | Lecture des métadonnées et gestion de l’IAM du bucket |
 | tf-plan | Secret terraform-approver-member | secretmanager.secretAccessor | Chargement de approver_member pour le plan |
@@ -173,6 +172,29 @@ Le rôle personnalisé `terraformSecretMetadataAdmin` contient :
 `secretmanager.secrets.create`, `delete`, `get`, `getIamPolicy`, `list`,
 `setIamPolicy` et `update`, tous sous le préfixe `secretmanager.secrets.`.
 Il ne contient pas `secretmanager.versions.access`.
+
+Le rôle personnalisé `terraformBigQueryMetadataAdmin` remplace
+`roles/bigquery.admin`. Il contient les permissions suivantes :
+
+- `bigquery.datasets.create`
+- `bigquery.datasets.delete`
+- `bigquery.datasets.get`
+- `bigquery.datasets.getIamPolicy`
+- `bigquery.datasets.setIamPolicy`
+- `bigquery.datasets.update`
+- `bigquery.tables.create`
+- `bigquery.tables.delete`
+- `bigquery.tables.get`
+- `bigquery.tables.getIamPolicy`
+- `bigquery.tables.list`
+- `bigquery.tables.setIamPolicy`
+- `bigquery.tables.update`
+
+Il ne contient ni `bigquery.tables.getData`, ni `bigquery.tables.updateData`,
+ni `bigquery.jobs.create`. Il peut modifier l’IAM et supprimer des ressources :
+ce rôle n’est pas une frontière empêchant tout accès indirect aux données.
+Les droits d’administration IAM du projet de `tf-apply` restent également élevés.
+Les protections `prevent_destroy` du dataset et de la table restent en place.
 
 Le rôle personnalisé `terraformBucketIamAdmin` contient :
 `storage.buckets.get`, `storage.buckets.getIamPolicy` et
@@ -272,7 +294,7 @@ un plan vide ne prouve pas leur conformité.
 Le déploiement de la fonction a également créé le dépôt
 `cloud-run-source-deploy` et utilise le bucket
 `run-sources-cloudpulse-001-europe-west9`. Ils ne font pas partie des
-21 imports de cette PR. Leur cycle de vie et leur IAM doivent être
+21 ressources importées pendant la phase 8. Leur cycle de vie et leur IAM doivent être
 inventoriés avant de les considérer comme couverts par Terraform ;
 la gestion du build reste déléguée au déploiement depuis les sources.
 
@@ -297,6 +319,17 @@ Pour l’application et la fonction, Terraform possède la configuration
 d’exécution ; les champs d’image et de trafic délégués au déploiement sont
 ignorés. `EVENTS_TOPIC` sur `cloudpulse-ingest` référence désormais le topic
 déclaré dans Terraform.
+
+Les abonnements `prices-ingested-bq` et `prices-ingested-dlq-inspect`
+sont configurés avec `expiration_policy { ttl = "" }` : aucune suppression
+automatique pour inactivité. La rétention des messages reste respectivement
+de 1 jour et de 7 jours ; absence d’expiration et rétention sont distinctes.
+
+La fonction `price-move-detector` utilise `INGRESS_TRAFFIC_INTERNAL_ONLY`,
+en complément de l’authentification IAM. Eventarc et Pub/Sub du même projet
+peuvent l’atteindre via son URL `run.app`, qui reste activée. L’accès direct
+depuis Internet est bloqué. Un événement de test publié après l’apply doit
+confirmer la livraison jusqu’au log de la fonction.
 
 Le dataset et la table BigQuery sont protégés par `prevent_destroy`.
 La table conserve également `deletion_protection = true`.

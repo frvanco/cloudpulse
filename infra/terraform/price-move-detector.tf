@@ -5,7 +5,8 @@ resource "google_cloud_run_v2_service" "price_move_detector" {
   deletion_policy     = "DELETE"
   deletion_protection = true
 
-  ingress              = "INGRESS_TRAFFIC_ALL"
+  # Eventarc/Pub/Sub du même projet utilisent l’URL run.app interne.
+  ingress              = "INGRESS_TRAFFIC_INTERNAL_ONLY"
   invoker_iam_disabled = false
 
   scaling {
