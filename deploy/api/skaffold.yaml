@@ -1,0 +1,108 @@
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: cloudpulse-api
+
+profiles:
+  - name: prod
+    manifests:
+      rawYaml:
+        - service.yaml
+
+deploy:
+  cloudrun: {}
+
+verify:
+  - name: api-readiness
+    container:
+      name: api-readiness
+      image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+      command: ["bash"]
+      args:
+        - -c
+        - |
+          set -euo pipefail
+
+          : "${CLOUD_RUN_PROJECT:?Variable Cloud Deploy absente}"
+          : "${CLOUD_RUN_LOCATION:?Variable Cloud Deploy absente}"
+          : "${CLOUD_RUN_SERVICE:?Variable Cloud Deploy absente}"
+          : "${CLOUD_RUN_REVISION:?Variable Cloud Deploy absente}"
+
+          SERVICE="${CLOUD_RUN_SERVICE##*/}"
+          REVISION="${CLOUD_RUN_REVISION##*/}"
+          VERIFY_TAG="cd-verify"
+          DEPLOY_SA="cloudpulse-deploy@${CLOUD_RUN_PROJECT}.iam.gserviceaccount.com"
+          WORK_DIR="$(mktemp -d)"
+
+          cleanup() {
+            gcloud run services update-traffic "$SERVICE" \
+              --project="$CLOUD_RUN_PROJECT" \
+              --region="$CLOUD_RUN_LOCATION" \
+              --remove-tags="$VERIFY_TAG" --quiet >/dev/null || true
+            rm -rf "$WORK_DIR"
+          }
+
+          # Ce tag réservé au test ne modifie pas les pourcentages de trafic.
+          gcloud run services update-traffic "$SERVICE" \
+            --project="$CLOUD_RUN_PROJECT" \
+            --region="$CLOUD_RUN_LOCATION" \
+            --update-tags="${VERIFY_TAG}=${REVISION}" --quiet
+
+          trap cleanup EXIT
+
+          gcloud run services describe "$SERVICE" \
+            --project="$CLOUD_RUN_PROJECT" \
+            --region="$CLOUD_RUN_LOCATION" \
+            --format=json > "$WORK_DIR/service.json"
+
+          SERVICE_URL="$(python3 -c '
+          import json, sys
+          service = json.load(open(sys.argv[1]))
+          print(service["status"]["url"])
+          ' "$WORK_DIR/service.json")"
+
+          VERIFY_URL="$(python3 -c '
+          import json, sys
+          service = json.load(open(sys.argv[1]))
+          matches = [
+              item for item in service["status"]["traffic"]
+              if item.get("tag") == sys.argv[2]
+              and item.get("revisionName") == sys.argv[3]
+          ]
+          if len(matches) != 1:
+              raise SystemExit("Le tag de test ne cible pas la révision attendue")
+          print(matches[0]["url"])
+          ' "$WORK_DIR/service.json" "$VERIFY_TAG" "$REVISION")"
+
+          # Génération OIDC pour sa propre identité, avec audience du service.
+          python3 -c '
+          import json, sys
+          print(json.dumps({"audience": sys.argv[1], "includeEmail": True}))
+          ' "$SERVICE_URL" > "$WORK_DIR/token-request.json"
+
+          ACCESS_TOKEN="$(gcloud auth print-access-token)"
+          TOKEN="$(curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --request POST \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary @"$WORK_DIR/token-request.json" \
+            "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${DEPLOY_SA}:generateIdToken" |
+            python3 -c 'import json, sys; print(json.load(sys.stdin)["token"])')"
+
+          printf 'Vérification de la révision %s : %s/health/ready\n' \
+            "$REVISION" "$VERIFY_URL"
+
+          curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --retry 5 --retry-delay 3 --retry-max-time 120 --retry-connrefused \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "${VERIFY_URL}/health/ready" > "$WORK_DIR/response.json"
+
+          python3 -c '
+          import json, sys
+          payload = json.load(open(sys.argv[1]))
+          if payload.get("status") != "ok" or payload.get("database") != "ok":
+              raise SystemExit("Le contrôle de disponibilité applicative a échoué")
+          print("Vérification réussie :", json.dumps(payload))
+          ' "$WORK_DIR/response.json"
