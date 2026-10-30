@@ -1,0 +1,50 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: cloudpulse-api
+  namespace: '595188864600'
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/maxScale: '3'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '2'
+        autoscaling.knative.dev/minScale: '0'
+        run.googleapis.com/cloudsql-instances: cloudpulse-001:europe-west9:cloudpulse-db
+        run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/sessionAffinity: 'false'
+        run.googleapis.com/startup-cpu-boost: 'true'
+    spec:
+      serviceAccountName: cloudpulse-api@cloudpulse-001.iam.gserviceaccount.com
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+        - image: cloudpulse-api
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-url
+                  key: '1'
+            - name: GOOGLE_CLOUD_PROJECT
+              value: cloudpulse-001
+            - name: TWELVE_DATA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: twelve-data-api-key
+                  key: '1'
+          ports:
+            - containerPort: 8080
+              name: http1
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          startupProbe:
+            failureThreshold: 1
+            periodSeconds: 240
+            timeoutSeconds: 240
+            tcpSocket:
+              port: 8080
