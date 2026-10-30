@@ -10,7 +10,7 @@ API REST NestJS de CloudPulse. Une seule image, deux modes (`APP_MODE`) :
 | Méthode | Route | Description |
 |---|---|---|
 | GET | `/health` | Liveness : le process répond (aucune dépendance). Renvoie `revision` (`K_REVISION`) sur Cloud Run |
-| GET | `/health/ready` | Readiness : vérifie la base (`SELECT 1`), 503 si injoignable ; renvoie aussi `revision`. Utilisé par le test de fumée |
+| GET | `/health/ready` | Readiness : vérifie la base (`SELECT 1`), 503 si injoignable ; renvoie aussi `revision`. Utilisé par la vérification Cloud Deploy |
 | GET | `/companies/:symbol/quote` | Cours actuel : base d'abord, Twelve Data si absent ou plus vieux que `QUOTE_TTL_SECONDS` ; renvoie la dernière valeur connue avec `stale: true` si Twelve Data est indisponible |
 
 Mode `ingest` uniquement (appelées par Cloud Scheduler et Cloud Tasks) :
@@ -122,23 +122,6 @@ Image de migration (cible `migrate`, exécutée en Cloud Run Job) :
 docker build --target migrate -t cloudpulse-migrate .
 docker run --rm --network cloudpulse_default \
   -e DATABASE_URL=postgresql://cloudpulse:cloudpulse@db:5432/cloudpulse cloudpulse-migrate
-```
-
-## Test de fumée
-
-`dist/smoke/main.js`, inclus dans l'image de l'API, appelle N fois `/health/ready` avec un
-jeton d'identité (Application Default Credentials) et compte les réponses par révision.
-Code de sortie 1 si une requête échoue après 3 tentatives. Prévu pour le conteneur
-`verify` de Cloud Deploy ([ADR 0008](../../docs/adr/0008-cloud-deploy.md)).
-
-| Variable | Défaut |
-|---|---|
-| `SMOKE_TEST_URL` | première URL de `CLOUD_RUN_SERVICE_URLS` |
-| `SMOKE_TEST_REQUESTS` | `20` |
-| `SMOKE_TEST_AUTH` | — (`none` : sans jeton, pour une API locale) |
-
-```bash
-SMOKE_TEST_AUTH=none SMOKE_TEST_URL=http://localhost:8080 node dist/smoke/main.js
 ```
 
 CI/CD : Cloud Build, pipelines dans `infra/terraform/pipelines/` (PR : tests et build ; `main` : migrations, déploiement sans trafic, test de fumée, promotion).

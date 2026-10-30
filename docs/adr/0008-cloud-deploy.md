@@ -17,9 +17,9 @@ production.
    Cloud Deploy. **Cloud Deploy fait la livraison** : une *rollout* par cible.
 3. **Une cible `prod`, stratégie canary 10 % → 50 % → 100 %.** Pas de staging : une
    seconde cible partagerait la base Cloud SQL et ses migrations.
-4. **Hook `predeploy`** : exécution du job de migration. **`verify`** : le test de
-   fumée (`node dist/smoke/main.js`, dans l'image de l'API) interroge l'URL du service à
-   chaque phase ; toutes les révisions qui reçoivent du trafic doivent répondre.
+4. **Hook `predeploy`** : exécution du job de migration. **`verify`** : à chaque phase,
+   un tag temporaire cible la nouvelle révision, dont `/health/ready` doit répondre
+   (`deploy/api/skaffold.yaml`).
 5. **Approbation** de la cible `prod` et passage manuel entre les phases.
 6. **Un seul propriétaire de la configuration du service** : le manifeste Cloud Run du
    dépôt, rendu par Skaffold. Terraform gère le pipeline, la cible et l'IAM, et retire le
