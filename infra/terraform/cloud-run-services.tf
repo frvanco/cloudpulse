@@ -105,6 +105,15 @@ resource "google_cloud_run_v2_service" "api" {
       client_version,
       template[0].containers[0].image,
       traffic,
+
+      # Nom de révision et traçabilité gérés par Cloud Deploy.
+      template[0].revision,
+      template[0].labels["delivery-pipeline-id"],
+      template[0].labels["location"],
+      template[0].labels["managed-by"],
+      template[0].labels["project-id"],
+      template[0].labels["release-id"],
+      template[0].labels["target-id"],
     ]
   }
 }
