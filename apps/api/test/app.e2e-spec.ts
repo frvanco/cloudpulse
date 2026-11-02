@@ -48,6 +48,7 @@ describe('API (e2e)', () => {
   afterEach(async () => {
     await app.close();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   const getQuote = (symbol: string) =>
@@ -62,6 +63,14 @@ describe('API (e2e)', () => {
       .get('/health')
       .expect(200)
       .expect({ status: 'ok' });
+  });
+
+  it('GET /health reports the Cloud Run revision serving the request', () => {
+    vi.stubEnv('K_REVISION', 'cloudpulse-api-00042-abc');
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect({ status: 'ok', revision: 'cloudpulse-api-00042-abc' });
   });
 
   it('GET /health/ready checks the database without calling the provider', async () => {
