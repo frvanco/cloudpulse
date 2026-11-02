@@ -11,12 +11,53 @@ profiles:
 
 deploy:
   cloudrun: {}
+customActions:
+  - name: migrate
+    containers:
+      - name: migrate
+        image: gcr.io/google.com/cloudsdktool/cloud-sdk@sha256:b38f2881552c3054d140c8eeb4ad88bdc0eb4deeeb38507c5dac1403adc3ee64
+        command: ["bash"]
+        args:
+          - -c
+          - |
+            set -euo pipefail
+
+            : "${CLOUD_DEPLOY_RELEASE:?Variable Cloud Deploy absente}"
+            : "${CLOUD_RUN_PROJECT:?Variable Cloud Deploy absente}"
+            : "${CLOUD_RUN_LOCATION:?Variable Cloud Deploy absente}"
+
+            # Convention obligatoire : api-<SHA utilisé pour les tags d'images>.
+            if [[ ! "$CLOUD_DEPLOY_RELEASE" =~ ^api-([0-9a-f]{7,40})$ ]]; then
+              echo "Nom de release attendu : api-<sha>, sans suffixe."
+              exit 1
+            fi
+
+            COMMIT_SHA="${BASH_REMATCH[1]}"
+            MIGRATION_IMAGE="europe-west9-docker.pkg.dev/${CLOUD_RUN_PROJECT}/cloudpulse/cloudpulse-migrate:${COMMIT_SHA}"
+
+            printf 'Migration de la release %s avec %s\n' \
+              "$CLOUD_DEPLOY_RELEASE" "$MIGRATION_IMAGE"
+
+            # Le job conserve son identité, ses secrets et son socket Cloud SQL.
+            # Ne pas lancer simultanément un autre pipeline qui modifie ce job.
+            gcloud run jobs update cloudpulse-migrate \
+              --project="$CLOUD_RUN_PROJECT" \
+              --region="$CLOUD_RUN_LOCATION" \
+              --image="$MIGRATION_IMAGE" \
+              --quiet
+
+            # Un échec de migration fait échouer le hook et bloque le déploiement.
+            gcloud run jobs execute cloudpulse-migrate \
+              --project="$CLOUD_RUN_PROJECT" \
+              --region="$CLOUD_RUN_LOCATION" \
+              --wait \
+              --quiet
 
 verify:
   - name: api-readiness
     container:
       name: api-readiness
-      image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+      image: gcr.io/google.com/cloudsdktool/cloud-sdk@sha256:b38f2881552c3054d140c8eeb4ad88bdc0eb4deeeb38507c5dac1403adc3ee64
       command: ["bash"]
       args:
         - -c
@@ -42,7 +83,12 @@ verify:
             rm -rf "$WORK_DIR"
           }
 
-          # Ce tag réservé au test ne modifie pas les pourcentages de trafic.
+          # Le tag temporaire cd-verify permet de tester la révision exacte,
+          # même lorsqu'elle ne reçoit aucun trafic utilisateur.
+          # Sa création et sa suppression nécessitent un droit d'écriture
+          # sur le service, sans modifier les pourcentages de trafic.
+          # Réserver ce tag à cette vérification et sérialiser les opérations
+          # Cloud Build, Cloud Deploy et les futures automations sur ce service.
           gcloud run services update-traffic "$SERVICE" \
             --project="$CLOUD_RUN_PROJECT" \
             --region="$CLOUD_RUN_LOCATION" \
@@ -74,7 +120,10 @@ verify:
           print(matches[0]["url"])
           ' "$WORK_DIR/service.json" "$VERIFY_TAG" "$REVISION")"
 
-          # Génération OIDC pour sa propre identité, avec audience du service.
+          # Appel explicite à IAM Credentials pour obtenir un jeton OIDC
+          # avec l'audience du service.
+          # Nécessite roles/iam.serviceAccountOpenIdTokenCreator
+          # pour cloudpulse-deploy sur son propre compte.
           python3 -c '
           import json, sys
           print(json.dumps({"audience": sys.argv[1], "includeEmail": True}))
