@@ -12,7 +12,11 @@ production.
 
 ## Décisions
 
-1. **Périmètre : `cloudpulse-api`.** L'ingest reste sur le pipeline actuel.
+1. **Périmètre : `cloudpulse-api`.** L'ingest reste déployé par Cloud Build. Comme il
+   partage la base, Cloud Build exécute les migrations **avant** de le déployer, puis crée
+   la release de l'API : les migrations s'appliquent donc avant l'approbation (sans risque
+   avec des migrations *expand/contract*), et le hook `predeploy` n'a en général plus rien
+   à appliquer.
 2. **Cloud Build fait l'intégration continue** (tests, images) et crée une *release*
    Cloud Deploy. **Cloud Deploy fait la livraison** : une *rollout* par cible.
 3. **Une cible `prod`, stratégie canary 10 % → 50 % → 100 %.** Pas de staging : une

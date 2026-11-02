@@ -16,10 +16,7 @@ export class HealthController {
   // process est vivant.
   @Get()
   check(): { status: 'ok'; revision: string } {
-    return {
-      status: 'ok',
-      revision: process.env.K_REVISION ?? 'local',
-    };
+    return { status: 'ok', revision: currentRevision() };
   }
 
   // Readiness : vérifie la base, sans appeler Twelve Data (ni quota consommé,
@@ -28,7 +25,7 @@ export class HealthController {
   async ready(): Promise<{
     status: 'ok';
     database: 'ok';
-    revision?: string;
+    revision: string;
   }> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
@@ -40,8 +37,8 @@ export class HealthController {
   }
 }
 
-// Révision Cloud Run qui a servi la requête (absente en local) : rend visible
-// la répartition du trafic pendant un déploiement canary.
-function currentRevision(): string | undefined {
-  return process.env.K_REVISION;
+// Révision Cloud Run qui a servi la requête ('local' hors Cloud Run) : rend
+// visible la répartition du trafic pendant un déploiement canary.
+function currentRevision(): string {
+  return process.env.K_REVISION ?? 'local';
 }
