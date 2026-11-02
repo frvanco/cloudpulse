@@ -43,9 +43,10 @@ spec:
               cpu: 1000m
               memory: 512Mi
           startupProbe:
-            failureThreshold: 1
-            periodSeconds: 240
-            timeoutSeconds: 240
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 24
             httpGet:
               path: /health
               port: 8080
