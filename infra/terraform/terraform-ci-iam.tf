@@ -40,6 +40,7 @@ locals {
     "roles/pubsub.viewer",
     "roles/eventarc.viewer",
     "roles/bigquery.metadataViewer",
+    "roles/clouddeploy.viewer",
   ])
 
   # Administration des familles de ressources présentes dans cet état.
@@ -62,6 +63,7 @@ locals {
     "roles/serviceusage.serviceUsageConsumer",
     "roles/pubsub.admin",
     "roles/eventarc.admin",
+    "roles/clouddeploy.admin",
   ])
 
   # Identités utilisées par les services, jobs et déclencheurs gérés.
@@ -77,6 +79,10 @@ locals {
     tf_apply       = google_service_account.tf_apply
     price_move     = google_service_account.price_move
     eventarc       = google_service_account.eventarc
+    # Compte existant ; sa ressource sera importée dans la PR suivante.
+    deploy = {
+      name = "projects/${var.project_id}/serviceAccounts/cloudpulse-deploy@${var.project_id}.iam.gserviceaccount.com"
+    }
   }
 }
 
@@ -171,6 +177,7 @@ resource "google_storage_bucket_iam_member" "tf_apply_bucket_iam" {
   for_each = toset([
     local.terraform_state_bucket,
     local.cloud_build_sources_bucket,
+    "europe-west9.deploy-artifacts.cloudpulse-001.appspot.com",
   ])
 
   bucket = each.value
