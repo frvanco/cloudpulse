@@ -62,7 +62,7 @@ describe('API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
-      .expect({ status: 'ok' });
+      .expect({ status: 'ok', revision: 'local' });
   });
 
   it('GET /health reports the Cloud Run revision serving the request', () => {
@@ -77,7 +77,7 @@ describe('API (e2e)', () => {
     await request(app.getHttpServer())
       .get('/health/ready')
       .expect(200)
-      .expect({ status: 'ok', database: 'ok' });
+      .expect({ status: 'ok', database: 'ok', revision: 'local' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
