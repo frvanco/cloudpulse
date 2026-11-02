@@ -15,8 +15,11 @@ export class HealthController {
   // Liveness : volontairement sans dépendance externe, répond tant que le
   // process est vivant.
   @Get()
-  check(): { status: 'ok'; revision?: string } {
-    return { status: 'ok', revision: currentRevision() };
+  check(): { status: 'ok'; revision: string } {
+    return {
+      status: 'ok',
+      revision: process.env.K_REVISION ?? 'local',
+    };
   }
 
   // Readiness : vérifie la base, sans appeler Twelve Data (ni quota consommé,
