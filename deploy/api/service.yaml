@@ -46,5 +46,6 @@ spec:
             failureThreshold: 1
             periodSeconds: 240
             timeoutSeconds: 240
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 8080
