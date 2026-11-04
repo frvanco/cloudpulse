@@ -37,3 +37,12 @@ production.
 - Les migrations restent compatibles avec la révision précédente (*expand/contract*) :
   pendant le canary, les deux révisions utilisent le même schéma.
 - Un rollback redéploie la release précédente, sans revenir sur les migrations.
+
+## Migration Terraform — étape du 2026-11-04
+
+Cette étape importe la cible `prod` dans Terraform.
+Le pipeline `cloudpulse-api` reste géré par `deploy/clouddeploy.yaml`,
+qui contient uniquement sa définition. Son import Terraform est reporté
+en raison du bug hashicorp/terraform-provider-google#30495.
+Le canary et le hook `predeploy` sont conservés.
+Le transfert de gestion du service Cloud Run prévu à la décision 6 reste à réaliser.
