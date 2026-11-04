@@ -17,16 +17,3 @@ serialPipeline:
             verify: true
             predeploy:
               actions: [migrate]
----
-apiVersion: deploy.cloud.google.com/v1
-kind: Target
-metadata:
-  name: prod
-description: Cloud Run CloudPulse en production
-requireApproval: true
-run:
-  location: projects/cloudpulse-001/locations/europe-west9
-executionConfigs:
-  - usages: [RENDER, PREDEPLOY, DEPLOY, VERIFY]
-    serviceAccount: cloudpulse-deploy@cloudpulse-001.iam.gserviceaccount.com
-    executionTimeout: 1200s
