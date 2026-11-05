@@ -23,23 +23,3 @@ resource "google_service_account_iam_member" "deploy_oidc_token" {
   role               = "roles/iam.serviceAccountOpenIdTokenCreator"
   member             = google_service_account.deploy.member
 }
-
-import {
-  to = google_service_account.deploy
-  id = "projects/cloudpulse-001/serviceAccounts/cloudpulse-deploy@cloudpulse-001.iam.gserviceaccount.com"
-}
-
-import {
-  to = google_project_iam_member.deploy_job_runner
-  id = "cloudpulse-001 roles/clouddeploy.jobRunner serviceAccount:cloudpulse-deploy@cloudpulse-001.iam.gserviceaccount.com"
-}
-
-import {
-  to = google_service_account_iam_member.build_act_as_deploy
-  id = "projects/cloudpulse-001/serviceAccounts/cloudpulse-deploy@cloudpulse-001.iam.gserviceaccount.com roles/iam.serviceAccountUser serviceAccount:cloudpulse-build@cloudpulse-001.iam.gserviceaccount.com"
-}
-
-import {
-  to = google_service_account_iam_member.deploy_oidc_token
-  id = "projects/cloudpulse-001/serviceAccounts/cloudpulse-deploy@cloudpulse-001.iam.gserviceaccount.com roles/iam.serviceAccountOpenIdTokenCreator serviceAccount:cloudpulse-deploy@cloudpulse-001.iam.gserviceaccount.com"
-}

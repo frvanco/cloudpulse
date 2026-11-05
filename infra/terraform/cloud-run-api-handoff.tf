@@ -4,12 +4,3 @@ data "google_cloud_run_v2_service" "api" {
   location = var.region
   name     = "cloudpulse-api"
 }
-
-# Conserver le service existant lors du retrait de l'état Terraform.
-removed {
-  from = google_cloud_run_v2_service.api
-
-  lifecycle {
-    destroy = false
-  }
-}

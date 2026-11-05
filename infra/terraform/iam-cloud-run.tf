@@ -1,19 +1,3 @@
-resource "google_cloud_run_v2_service_iam_member" "build_deploy_api" {
-  project  = var.project_id
-  location = var.region
-  name     = data.google_cloud_run_v2_service.api.name
-  role     = "roles/run.developer"
-  member   = google_service_account.build.member
-}
-
-resource "google_cloud_run_v2_service_iam_member" "build_invoke_api" {
-  project  = var.project_id
-  location = var.region
-  name     = data.google_cloud_run_v2_service.api.name
-  role     = "roles/run.invoker"
-  member   = google_service_account.build.member
-}
-
 resource "google_cloud_run_v2_service_iam_member" "build_deploy_ingest" {
   project  = var.project_id
   location = var.region

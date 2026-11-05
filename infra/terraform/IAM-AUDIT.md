@@ -66,8 +66,6 @@ pour la phase 8 sont gérées par Terraform.
 | migrate | Secret database-url | secretmanager.secretAccessor | Connexion PostgreSQL |
 | api | Secret twelve-data-api-key | secretmanager.secretAccessor | Appels Twelve Data |
 | ingest | Secret twelve-data-api-key | secretmanager.secretAccessor | Appels Twelve Data |
-| build | Service cloudpulse-api, europe-west9 | run.developer | Déploiement et promotion |
-| build | Service cloudpulse-api, europe-west9 | run.invoker | Test de fumée |
 | build | Service cloudpulse-ingest, europe-west9 | run.developer | Déploiement et promotion |
 | build | Service cloudpulse-ingest, europe-west9 | run.invoker | Test de fumée |
 | ingest-invoker | Service cloudpulse-ingest, europe-west9 | run.invoker | Appels Tasks et Scheduler |
