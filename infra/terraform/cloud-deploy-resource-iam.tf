@@ -6,7 +6,7 @@ resource "google_cloud_run_v2_service_iam_member" "deploy_api" {
 
   project  = var.project_id
   location = var.region
-  name     = google_cloud_run_v2_service.api.name
+  name     = data.google_cloud_run_v2_service.api.name
   role     = each.value
   member   = google_service_account.deploy.member
 }
