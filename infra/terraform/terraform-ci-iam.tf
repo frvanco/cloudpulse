@@ -79,10 +79,7 @@ locals {
     tf_apply       = google_service_account.tf_apply
     price_move     = google_service_account.price_move
     eventarc       = google_service_account.eventarc
-    # Compte existant ; sa ressource sera importée dans la PR suivante.
-    deploy = {
-      name = "projects/${var.project_id}/serviceAccounts/cloudpulse-deploy@${var.project_id}.iam.gserviceaccount.com"
-    }
+    deploy         = google_service_account.deploy
   }
 }
 
