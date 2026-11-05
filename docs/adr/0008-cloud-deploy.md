@@ -46,3 +46,12 @@ qui contient uniquement sa définition. Son import Terraform est reporté
 en raison du bug hashicorp/terraform-provider-google#30495.
 Le canary et le hook `predeploy` sont conservés.
 Le transfert de gestion du service Cloud Run prévu à la décision 6 reste à réaliser.
+
+### Transfert du service API — 2026-11-05
+
+La configuration de `cloudpulse-api` est gérée par Cloud Deploy via
+`deploy/api/service.yaml`. Un bloc Terraform `removed` avec
+`destroy = false` retire le service de l'état sans le détruire.
+Les ressources IAM et le monitoring restent gérés par Terraform et
+référencent le service existant via une data source.
+Le service ingest et le job de migration restent gérés par Terraform.

@@ -1,15 +1,15 @@
 resource "google_monitoring_service" "api" {
   project         = "595188864600"
   service_id      = "20bvW_TfSPe-95PnWKTKSA"
-  display_name    = google_cloud_run_v2_service.api.name
+  display_name    = data.google_cloud_run_v2_service.api.name
   deletion_policy = "DELETE"
 
   basic_service {
     service_type = "CLOUD_RUN"
 
     service_labels = {
-      location     = google_cloud_run_v2_service.api.location
-      service_name = google_cloud_run_v2_service.api.name
+      location     = data.google_cloud_run_v2_service.api.location
+      service_name = data.google_cloud_run_v2_service.api.name
     }
   }
 }
