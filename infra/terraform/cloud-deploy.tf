@@ -17,8 +17,3 @@ resource "google_clouddeploy_target" "prod" {
     execution_timeout = "1200s"
   }
 }
-
-import {
-  to = google_clouddeploy_target.prod
-  id = "projects/cloudpulse-001/locations/europe-west9/targets/prod"
-}
