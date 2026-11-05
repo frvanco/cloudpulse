@@ -28,8 +28,8 @@ Variables d'environnement, validées au démarrage (`src/config/env.validation.t
 
 | Variable | Obligatoire | Défaut |
 |---|---|---|
-| `TWELVE_DATA_API_KEY` | oui | — |
-| `DATABASE_URL` | oui | — |
+| `TWELVE_DATA_API_KEY` | oui (ou `TWELVE_DATA_API_KEY_FILE`) | — |
+| `DATABASE_URL` | oui (ou `DATABASE_URL_FILE`) | — |
 | `DATABASE_POOL_MAX` | non | `5` |
 | `QUOTE_TTL_SECONDS` | non | `300` |
 | `PORT` | non | `8080` |
@@ -43,6 +43,11 @@ Variables d'environnement, validées au démarrage (`src/config/env.validation.t
 | `EVENTS_TOPIC` | non | — (`projects/P/topics/T` ; absent : aucun événement publié) |
 | `LOG_FORMAT` | non | `json` en production, `pretty` sinon |
 | `GOOGLE_CLOUD_PROJECT` | non | — (ID du projet : relie chaque log à la trace de sa requête) |
+
+Les deux secrets peuvent aussi être lus dans un fichier : `VARIABLE_FILE=/chemin`
+(par exemple un secret monté par le pilote CSI Secret Manager sur GKE). Le contenu est
+débarrassé des espaces et sauts de ligne de début et de fin. Définir à la fois `VARIABLE`
+et `VARIABLE_FILE` est refusé.
 
 En local, copier `.env.example` en `.env`. En production (`NODE_ENV=production`),
 le fichier `.env` est ignoré : seules les variables d'environnement du service comptent.
@@ -68,6 +73,7 @@ interprétée par Cloud Logging :
 | `provider.request` | `path`, `outcome` (`ok` / `error` / `unreachable`), `code`, `durationMs` | INFO / WARNING / ERROR |
 | `ingestion.dispatch` | `date`, `companies`, `enqueued`, `alreadyQueued` | INFO |
 | `ingestion.symbol` | `symbol`, `status` (`ingested` / `skipped`), `days`, `published`, `messageId`, `reason` | INFO / WARNING |
+| `app.shutdown` | `signal` | INFO |
 | `event.publish` | `type`, `eventId`, `outcome` (`error`), `error` | ERROR |
 
 ## Événements publiés (Pub/Sub)

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 
 // Schéma de la configuration : l'application refuse de démarrer si une
@@ -72,8 +73,32 @@ const envSchema = z
 
 export type Env = z.infer<typeof envSchema>;
 
+// Secrets pouvant être fournis par un fichier monté (VARIABLE_FILE=chemin),
+// par exemple par le pilote CSI Secret Manager sur GKE. Sur Cloud Run, ils
+// arrivent en variables d'environnement.
+const FILE_SECRETS = ['TWELVE_DATA_API_KEY', 'DATABASE_URL'] as const;
+
+export function resolveFileSecrets(
+  config: Record<string, unknown>,
+  readFile: (path: string) => string = (path) => readFileSync(path, 'utf8'),
+): Record<string, unknown> {
+  const resolved = { ...config };
+  for (const key of FILE_SECRETS) {
+    const path = config[`${key}_FILE`];
+    if (typeof path !== 'string' || path === '') continue;
+    if (config[key] !== undefined) {
+      throw new Error(
+        `Invalid environment configuration: ${key} and ${key}_FILE are both set`,
+      );
+    }
+    // trim : un fichier de secret se termine souvent par un saut de ligne.
+    resolved[key] = readFile(path).trim();
+  }
+  return resolved;
+}
+
 export function validateEnv(config: Record<string, unknown>): Env {
-  const result = envSchema.safeParse(config);
+  const result = envSchema.safeParse(resolveFileSecrets(config));
   if (!result.success) {
     const issues = result.error.issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
