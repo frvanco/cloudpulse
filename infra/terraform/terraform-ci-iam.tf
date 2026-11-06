@@ -65,7 +65,7 @@ locals {
     "roles/pubsub.admin",
     "roles/eventarc.admin",
     "roles/clouddeploy.admin",
-    "roles/container.admin",
+    "roles/container.clusterAdmin",
   ])
 
   # Identités utilisées par les services, jobs et déclencheurs gérés.
