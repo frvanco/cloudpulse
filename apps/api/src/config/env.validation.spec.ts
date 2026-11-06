@@ -1,4 +1,4 @@
-import { validateEnv } from './env.validation.js';
+import { resolveFileSecrets, validateEnv } from './env.validation.js';
 
 const base = { TWELVE_DATA_API_KEY: 'key', DATABASE_URL: 'db' };
 
@@ -42,5 +42,46 @@ describe('validateEnv', () => {
 
   it('fails fast when the API key is missing', () => {
     expect(() => validateEnv({})).toThrow(/TWELVE_DATA_API_KEY/);
+  });
+});
+
+describe('resolveFileSecrets', () => {
+  const files: Record<string, string> = {
+    '/secrets/database-url': 'postgresql://u:p@localhost/db\n',
+  };
+  const readFile = (path: string) => files[path];
+
+  it('reads a secret from the file named by VARIABLE_FILE, trimmed', () => {
+    expect(
+      resolveFileSecrets(
+        { DATABASE_URL_FILE: '/secrets/database-url', PORT: '8080' },
+        readFile,
+      ),
+    ).toMatchObject({
+      DATABASE_URL: 'postgresql://u:p@localhost/db',
+      PORT: '8080',
+    });
+  });
+
+  it('leaves the environment unchanged without VARIABLE_FILE', () => {
+    expect(resolveFileSecrets(base, readFile)).toEqual(base);
+  });
+
+  it('rejects a secret set both directly and by file', () => {
+    expect(() =>
+      resolveFileSecrets(
+        { DATABASE_URL: 'db', DATABASE_URL_FILE: '/secrets/database-url' },
+        readFile,
+      ),
+    ).toThrow(/DATABASE_URL and DATABASE_URL_FILE/);
+  });
+
+  it('fails fast when the file cannot be read', () => {
+    expect(() =>
+      validateEnv({
+        TWELVE_DATA_API_KEY: 'key',
+        DATABASE_URL_FILE: '/does/not/exist',
+      }),
+    ).toThrow(/ENOENT/);
   });
 });

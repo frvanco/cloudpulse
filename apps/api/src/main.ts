@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module.js';
@@ -28,8 +29,12 @@ async function bootstrap() {
 
   const app = await NestFactory.create(rootModule, { logger });
   app.use(requestContextMiddleware);
-  // Cloud Run envoie SIGTERM avant d'arrêter une instance : arrêt propre.
+  // Cloud Run et Kubernetes envoient SIGTERM avant d'arrêter une instance ou
+  // un pod : arrêt propre (serveur HTTP, pool PostgreSQL) dans le délai de grâce.
   app.enableShutdownHooks();
+  process.once('SIGTERM', () =>
+    Logger.log({ event: 'app.shutdown', signal: 'SIGTERM' }, 'Bootstrap'),
+  );
 
   const config = app.get(ConfigService<Env, true>);
   // 0.0.0.0 : écouter sur toutes les interfaces, pas seulement localhost,
