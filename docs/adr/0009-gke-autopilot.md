@@ -10,8 +10,9 @@ sur GKE Autopilot, le temps de la phase 10. Cloud Run reste la plateforme de pro
 
 ## Décisions
 
-1. **Cluster Autopilot** en `europe-west9`, **créé par Terraform** (et non importé),
-   détruit à la fin de la phase.
+1. **Cluster Autopilot** `cloudpulse-autopilot`, régional en `europe-west9`, canal
+   Regular, **créé par Terraform** (et non importé), détruit à la fin de la phase. Compte
+   de service dédié aux nœuds (`cloudpulse-gke-nodes`) ; `deletion_protection = true`.
 2. **Même image**, namespace `cloudpulse`. Les objets Kubernetes (Deployment, Service,
    HPA, PodDisruptionBudget, Gateway) sont dans `deploy/gke/` (Kustomize), appliqués avec
    `kubectl`, hors Terraform.
@@ -33,3 +34,19 @@ sur GKE Autopilot, le temps de la phase 10. Cloud Run reste la plateforme de pro
 - Coût : frais de gestion du cluster (couverts par le crédit gratuit d'un cluster par
   compte de facturation, à vérifier), pods facturés selon leurs *requests*, équilibreur de
   charge tant qu'il existe.
+
+## Réseau
+
+Le cluster utilise le VPC et le sous-réseau `default`. Les nœuds disposent
+d'adresses IP publiques pour permettre les sorties vers Internet, notamment
+vers Twelve Data, sans créer de Cloud NAT.
+
+Ce choix simplifie l'exercice et évite le coût d'un Cloud NAT dédié, mais
+augmente l'exposition réseau par rapport à des nœuds privés. Il doit être
+réévalué pour un environnement de production.
+
+## Durée de vie et coûts
+
+Le cluster est temporaire. Après les exercices, passer
+`deletion_protection` à `false`, appliquer ce changement, puis supprimer le
+cluster par Terraform. Vérifier aussi les ressources et coûts associés.
