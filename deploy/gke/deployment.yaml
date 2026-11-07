@@ -44,6 +44,13 @@ spec:
               port: proxy-health
             periodSeconds: 5
             failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: proxy-health
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m
@@ -53,6 +60,7 @@ spec:
           securityContext:
             runAsUser: 65532
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           volumeMounts:
             - name: cloudsql
               mountPath: /cloudsql
@@ -94,7 +102,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health/ready
+              path: /health
               port: http
             periodSeconds: 10
             failureThreshold: 3
@@ -111,6 +119,7 @@ spec:
           securityContext:
             runAsUser: 1000
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           volumeMounts:
             - name: cloudsql
               mountPath: /cloudsql
