@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudpulse-api
+  namespace: cloudpulse
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: cloudpulse-api
+  template:
+    metadata:
+      labels:
+        app: cloudpulse-api
+    spec:
+      serviceAccountName: cloudpulse-api
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65532
+
+      initContainers:
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.18.3
+          restartPolicy: Always
+          args:
+            - --unix-socket=/cloudsql
+            - --structured-logs
+            - --health-check
+            - --http-address=0.0.0.0
+            - --http-port=9090
+            - cloudpulse-001:europe-west9:cloudpulse-db
+          ports:
+            - name: proxy-health
+              containerPort: 9090
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: proxy-health
+            periodSeconds: 5
+            failureThreshold: 24
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
+
+      containers:
+        - name: api
+          image: europe-west9-docker.pkg.dev/cloudpulse-001/cloudpulse/cloudpulse-api@sha256:cd02c290d79507e2d4e4fed90a4b1cf18c3e23e338f0be2147fc9274e21119bd
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: LOG_FORMAT
+              value: json
+            - name: GOOGLE_CLOUD_PROJECT
+              value: cloudpulse-001
+            - name: DATABASE_POOL_MAX
+              value: "2"
+            - name: DATABASE_URL_FILE
+              value: /var/secrets/cloudpulse/database-url
+            - name: TWELVE_DATA_API_KEY_FILE
+              value: /var/secrets/cloudpulse/twelve-data-api-key
+            - name: K_REVISION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: cloudsql
+              mountPath: /cloudsql
+            - name: secrets
+              mountPath: /var/secrets/cloudpulse
+              readOnly: true
+
+      volumes:
+        - name: cloudsql
+          emptyDir: {}
+        - name: secrets
+          csi:
+            driver: secrets-store-gke.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: cloudpulse-api-secrets
