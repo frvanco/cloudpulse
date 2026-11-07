@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudpulse-gateway-test
+  namespace: cloudpulse
+spec:
+  type: ClusterIP
+  selector:
+    app: cloudpulse-gateway-disabled
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: cloudpulse-gateway-armor
+  namespace: cloudpulse
+spec:
+  default:
+    securityPolicy: cloudpulse-gke-test
+    logging:
+      enabled: true
+      sampleRate: 1000000
+  targetRef:
+    group: ""
+    kind: Service
+    name: cloudpulse-gateway-test
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: cloudpulse-gateway-health
+  namespace: cloudpulse
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        portSpecification: USE_SERVING_PORT
+        requestPath: /health
+  targetRef:
+    group: ""
+    kind: Service
+    name: cloudpulse-gateway-test
