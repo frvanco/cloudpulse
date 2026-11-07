@@ -3,7 +3,7 @@ resource "google_container_cluster" "cloudpulse" {
   name                = "cloudpulse-autopilot"
   location            = var.region
   enable_autopilot    = true
-  deletion_protection = true
+  deletion_protection = false
 
   network    = "default"
   subnetwork = "default"
