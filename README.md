@@ -35,7 +35,7 @@ que lorsqu'il a une vraie justification architecturale.
 - [x] **Phase 7** — Terraform : import de l'infrastructure existante, plan sur PR et apply approuvé dans Cloud Build ([ADR 0006](docs/adr/0006-terraform.md))
 - [x] **Phase 8** — Événements : Pub/Sub, Eventarc, Cloud Run functions, abonnement BigQuery, dead-letter ([ADR 0007](docs/adr/0007-evenements-pubsub.md))
 - [x] **Phase 9** — Livraison progressive : Cloud Deploy, canary sur Cloud Run ([ADR 0008](docs/adr/0008-cloud-deploy.md))
-- [ ] **Phase 10** — GKE Autopilot : même image, Workload Identity, Gateway, HPA ([ADR 0009](docs/adr/0009-gke-autopilot.md))
+- [x] **Phase 10** — GKE Autopilot : même image, Workload Identity, Gateway, HPA ([ADR 0009](docs/adr/0009-gke-autopilot.md))
 - [ ] **Phase 11** — Traces et performance : Cloud Trace (OpenTelemetry), Cloud Profiler
 - [ ] *(optionnelle)* Exposition : API Gateway ou load balancer + Cloud Armor, IAP
 
