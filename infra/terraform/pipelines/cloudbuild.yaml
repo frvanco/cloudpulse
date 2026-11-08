@@ -97,7 +97,7 @@ steps:
       - --quiet
 
   - id: smoke-test-ingest
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk@sha256:b38f2881552c3054d140c8eeb4ad88bdc0eb4deeeb38507c5dac1403adc3ee64
     entrypoint: bash
     args:
       - -c
