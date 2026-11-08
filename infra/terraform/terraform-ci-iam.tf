@@ -41,7 +41,6 @@ locals {
     "roles/eventarc.viewer",
     "roles/bigquery.metadataViewer",
     "roles/clouddeploy.viewer",
-    "roles/container.viewer",
   ])
 
   # Administration des familles de ressources présentes dans cet état.
@@ -65,7 +64,6 @@ locals {
     "roles/pubsub.admin",
     "roles/eventarc.admin",
     "roles/clouddeploy.admin",
-    "roles/container.clusterAdmin",
   ])
 
   # Identités utilisées par les services, jobs et déclencheurs gérés.
@@ -82,7 +80,6 @@ locals {
     price_move     = google_service_account.price_move
     eventarc       = google_service_account.eventarc
     deploy         = google_service_account.deploy
-    gke_nodes      = google_service_account.gke_nodes
   }
 }
 
