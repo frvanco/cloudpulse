@@ -27,7 +27,11 @@ export class PubSubEventPublisher extends EventPublisher {
     super();
     // Application Default Credentials : le service account du service Cloud Run.
     // PUBSUB_EMULATOR_HOST, s'il est défini, redirige vers l'émulateur local.
-    this.topic = new PubSub().topic(config.get('EVENTS_TOPIC'));
+    // Avec le traçage, le contexte de trace voyage dans les attributs du
+    // message : la publication apparaît dans la trace de l'ingestion.
+    this.topic = new PubSub({
+      enableOpenTelemetryTracing: config.get('TRACING_ENABLED'),
+    }).topic(config.get('EVENTS_TOPIC'));
   }
 
   publish({ type, id, data, attributes }: DomainEvent): Promise<string> {

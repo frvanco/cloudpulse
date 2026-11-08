@@ -6,6 +6,7 @@ import type { Env } from './config/env.validation.js';
 import { IngestAppModule } from './ingest-app.module.js';
 import { GcpJsonLogger } from './observability/gcp-json-logger.js';
 import { requestContextMiddleware } from './observability/request-context.js';
+import { shutdownTelemetry } from './observability/telemetry-shutdown.js';
 
 async function bootstrap() {
   // Même image, deux services : APP_MODE choisit le module racine. La valeur
@@ -30,11 +31,17 @@ async function bootstrap() {
   const app = await NestFactory.create(rootModule, { logger });
   app.use(requestContextMiddleware);
   // Cloud Run et Kubernetes envoient SIGTERM avant d'arrêter une instance ou
-  // un pod : arrêt propre (serveur HTTP, pool PostgreSQL) dans le délai de grâce.
-  app.enableShutdownHooks();
-  process.once('SIGTERM', () =>
-    Logger.log({ event: 'app.shutdown', signal: 'SIGTERM' }, 'Bootstrap'),
-  );
+  // un pod. Arrêt dans l'ordre, pendant le délai de grâce : serveur HTTP et
+  // pool PostgreSQL (app.close), puis envoi des spans en attente, puis sortie.
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.once(signal, () => {
+      Logger.log({ event: 'app.shutdown', signal }, 'Bootstrap');
+      void app
+        .close()
+        .then(shutdownTelemetry)
+        .finally(() => process.exit(0));
+    });
+  }
 
   const config = app.get(ConfigService<Env, true>);
   // 0.0.0.0 : écouter sur toutes les interfaces, pas seulement localhost,

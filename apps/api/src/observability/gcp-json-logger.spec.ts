@@ -1,3 +1,5 @@
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import { context, trace, TraceFlags } from '@opentelemetry/api';
 import { GcpJsonLogger } from './gcp-json-logger.js';
 import { extractTraceId, requestContext } from './request-context.js';
 
@@ -81,6 +83,29 @@ describe('GcpJsonLogger', () => {
       `projects/cloudpulse-001/traces/${TRACE_ID}`,
     );
     expect(lines[1]['logging.googleapis.com/trace']).toBeUndefined();
+  });
+
+  it('links the entry to the active OpenTelemetry span when tracing is on', () => {
+    const contextManager = new AsyncLocalStorageContextManager().enable();
+    context.setGlobalContextManager(contextManager);
+    try {
+      const { logger, lines } = createLogger();
+      const span = trace.wrapSpanContext({
+        traceId: TRACE_ID,
+        spanId: '00f067aa0ba902b7',
+        traceFlags: TraceFlags.SAMPLED,
+      });
+      context.with(trace.setSpan(context.active(), span), () =>
+        logger.log('in span'),
+      );
+      expect(lines[0]).toMatchObject({
+        'logging.googleapis.com/trace': `projects/cloudpulse-001/traces/${TRACE_ID}`,
+        'logging.googleapis.com/spanId': '00f067aa0ba902b7',
+        'logging.googleapis.com/trace_sampled': true,
+      });
+    } finally {
+      context.disable();
+    }
   });
 
   it('serializes bigint values', () => {

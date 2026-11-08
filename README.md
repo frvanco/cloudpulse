@@ -36,7 +36,7 @@ que lorsqu'il a une vraie justification architecturale.
 - [x] **Phase 8** — Événements : Pub/Sub, Eventarc, Cloud Run functions, abonnement BigQuery, dead-letter ([ADR 0007](docs/adr/0007-evenements-pubsub.md))
 - [x] **Phase 9** — Livraison progressive : Cloud Deploy, canary sur Cloud Run ([ADR 0008](docs/adr/0008-cloud-deploy.md))
 - [x] **Phase 10** — GKE Autopilot : même image, Workload Identity, Gateway, HPA ([ADR 0009](docs/adr/0009-gke-autopilot.md))
-- [ ] **Phase 11** — Traces et performance : Cloud Trace (OpenTelemetry), Cloud Profiler
+- [ ] **Phase 11** — Traces : Cloud Trace avec OpenTelemetry ([ADR 0010](docs/adr/0010-traces-opentelemetry.md))
 - [ ] *(optionnelle)* Exposition : API Gateway ou load balancer + Cloud Armor, IAP
 
 ## Démarrage local
