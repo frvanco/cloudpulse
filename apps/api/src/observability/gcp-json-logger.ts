@@ -1,4 +1,5 @@
 import type { LoggerService } from '@nestjs/common';
+import { isSpanContextValid, trace, TraceFlags } from '@opentelemetry/api';
 import { requestContext } from './request-context.js';
 
 type Severity = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
@@ -19,7 +20,8 @@ const STACK_PATTERN = /\n\s+at /;
 // stdout à Cloud Logging, qui interprète les champs spéciaux :
 // - severity : niveau du log (filtrable, colorié dans la console) ;
 // - message : texte affiché ;
-// - logging.googleapis.com/trace : regroupe les logs d'une même requête ;
+// - logging.googleapis.com/trace (+ spanId, trace_sampled) : regroupe les logs
+//   d'une même requête et les relie à sa trace dans Cloud Trace ;
 // - @type ReportedErrorEvent + stack : crée une erreur dans Error Reporting.
 // Les autres champs arrivent dans jsonPayload et sont interrogeables.
 export class GcpJsonLogger implements LoggerService {
@@ -88,10 +90,20 @@ export class GcpJsonLogger implements LoggerService {
       }
     }
 
-    const traceId = requestContext.getStore()?.traceId;
+    // Avec OpenTelemetry, le span actif donne la trace et le span : le log
+    // s'ouvre depuis la trace dans Cloud Trace, et inversement. Sinon, la
+    // trace vient de l'en-tête de la requête.
+    const span = trace.getActiveSpan()?.spanContext();
+    const activeSpan = span && isSpanContextValid(span) ? span : undefined;
+    const traceId = activeSpan?.traceId ?? requestContext.getStore()?.traceId;
     if (traceId && this.options.projectId) {
       entry['logging.googleapis.com/trace'] =
         `projects/${this.options.projectId}/traces/${traceId}`;
+      if (activeSpan) {
+        entry['logging.googleapis.com/spanId'] = activeSpan.spanId;
+        entry['logging.googleapis.com/trace_sampled'] =
+          (activeSpan.traceFlags & TraceFlags.SAMPLED) === TraceFlags.SAMPLED;
+      }
     }
 
     this.write(JSON.stringify(entry, jsonReplacer));

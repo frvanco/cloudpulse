@@ -43,6 +43,9 @@ Variables d'environnement, validées au démarrage (`src/config/env.validation.t
 | `EVENTS_TOPIC` | non | — (`projects/P/topics/T` ; absent : aucun événement publié) |
 | `LOG_FORMAT` | non | `json` en production, `pretty` sinon |
 | `GOOGLE_CLOUD_PROJECT` | non | — (ID du projet : relie chaque log à la trace de sa requête) |
+| `TRACING_ENABLED` | non | `false` (`true` : OpenTelemetry vers Cloud Trace) |
+| `TRACE_SAMPLE_RATIO` | non | `0.1` (requêtes sans décision d'échantillonnage de l'appelant) |
+| `TRACE_EXPORTER` | non | Cloud Trace (`console` : spans affichés sur stdout, pour le local) |
 
 Les deux secrets peuvent aussi être lus dans un fichier : `VARIABLE_FILE=/chemin`
 (par exemple un secret monté par le pilote CSI Secret Manager sur GKE). Le contenu est
@@ -62,6 +65,7 @@ interprétée par Cloud Logging :
 | `severity` | Niveau du log (INFO, WARNING, ERROR…) |
 | `message` | Texte affiché dans Logs Explorer |
 | `logging.googleapis.com/trace` | Regroupe les logs d'une même requête (si `GOOGLE_CLOUD_PROJECT` est défini) |
+| `logging.googleapis.com/spanId`, `trace_sampled` | Relie le log à son span dans Cloud Trace (si le traçage est activé) |
 | `@type` ReportedErrorEvent + pile d'appels | Crée ou incrémente une erreur dans **Error Reporting** (exceptions non gérées) |
 | autres champs | Dans `jsonPayload`, interrogeables et utilisables pour des **métriques basées sur les logs** |
 
@@ -74,6 +78,7 @@ interprétée par Cloud Logging :
 | `ingestion.dispatch` | `date`, `companies`, `enqueued`, `alreadyQueued` | INFO |
 | `ingestion.symbol` | `symbol`, `status` (`ingested` / `skipped`), `days`, `published`, `messageId`, `reason` | INFO / WARNING |
 | `app.shutdown` | `signal` | INFO |
+| `tracing.started` | `ratio`, `service`, `version` | INFO |
 | `event.publish` | `type`, `eventId`, `outcome` (`error`), `error` | ERROR |
 
 ## Événements publiés (Pub/Sub)
@@ -90,6 +95,18 @@ Les prix sont des chaînes décimales. Pas de message si la série ne contient q
 rejoue la tâche : un consommateur peut recevoir le même `eventId` deux fois.
 
 En local, l'émulateur Pub/Sub est utilisé si `PUBSUB_EMULATOR_HOST` est défini.
+
+## Traces (OpenTelemetry)
+
+`src/instrumentation.ts` est chargé avant l'application (`node --import`, voir le
+`Dockerfile` et `npm run start:prod`). Avec `TRACING_ENABLED=true`, il instrumente HTTP,
+Express, PostgreSQL et `fetch`, et exporte vers Cloud Trace
+([ADR 0010](../../docs/adr/0010-traces-opentelemetry.md)). Pour voir les spans en local :
+
+```bash
+npm run build
+TRACING_ENABLED=true TRACE_EXPORTER=console TRACE_SAMPLE_RATIO=1 npm run start:prod
+```
 
 ## Commandes
 

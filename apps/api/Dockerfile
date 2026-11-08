@@ -43,4 +43,5 @@ COPY package.json ./
 USER node
 # Documentation uniquement : Cloud Run fournit PORT (8080 par défaut).
 EXPOSE 8080
-CMD ["node", "dist/main.js"]
+# --import : OpenTelemetry (si TRACING_ENABLED=true) avant l'application.
+CMD ["node", "--import", "./dist/instrumentation.js", "dist/main.js"]

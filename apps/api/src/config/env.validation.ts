@@ -33,6 +33,10 @@ const envSchema = z
     LOG_FORMAT: z.enum(['json', 'pretty']).optional(),
     // Permet de relier chaque log à la trace de sa requête (Cloud Trace).
     GOOGLE_CLOUD_PROJECT: z.string().optional(),
+    // Lus par src/instrumentation.ts, chargé avant l'application.
+    TRACING_ENABLED: z.stringbool().default(false),
+    TRACE_SAMPLE_RATIO: z.coerce.number().min(0).max(1).optional(),
+    TRACE_EXPORTER: z.enum(['cloud-trace', 'console']).optional(),
 
     // --- Mode ingest uniquement ---
     // File Cloud Tasks : projects/PROJET/locations/REGION/queues/FILE
