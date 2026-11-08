@@ -1,6 +1,6 @@
 # ADR 0009 — GKE Autopilot pour comparer avec Cloud Run
 
-- Statut : acceptée
+- Statut : terminée (cluster détruit le 2026-11-08)
 - Date : 2026-11-05
 
 ## Contexte
@@ -50,3 +50,20 @@ réévalué pour un environnement de production.
 Le cluster est temporaire. Après les exercices, passer
 `deletion_protection` à `false`, appliquer ce changement, puis supprimer le
 cluster par Terraform. Vérifier aussi les ressources et coûts associés.
+
+## Bilan : Cloud Run et GKE Autopilot pour cette API
+
+| | Cloud Run | GKE Autopilot |
+|---|---|---|
+| Objets à écrire | Un manifeste de service | Namespace, KSA, SecretProviderClass, Deployment, Service, HPA, PDB, Gateway et politiques |
+| Identité | Service account du service | Workload Identity Federation (principal du KSA) |
+| Cloud SQL | Connecteur intégré (socket `/cloudsql`) | Sidecar Cloud SQL Auth Proxy à configurer |
+| Secrets | Variables d'environnement Secret Manager | Pilote CSI, fichiers montés (`*_FILE`) |
+| Mise à l'échelle | Concurrence, jusqu'à zéro, en secondes | HPA (CPU), minimum 1 réplica, nœuds créés à la demande (plus lent) |
+| Disponibilité | Gérée par la plateforme | Réplicas, PDB, sondes, `preStop` à régler soi-même |
+| Exposition et accès | URL HTTPS, IAM `run.invoker` | Gateway (équilibreur de charge), Cloud Armor ou IAP à ajouter |
+| Coût au repos | Nul (scale-to-zero) | Frais de cluster + requests des pods + équilibreur de charge |
+
+Conclusion : pour une API sans état, à faible trafic, Cloud Run reste le bon choix. GKE se
+justifierait pour des besoins de contrôle (sidecars, charges avec état, GPU, maillage de
+services), de portabilité, ou un grand nombre de services partageant un cluster.
