@@ -33,7 +33,7 @@ spec:
             - name: TRACING_ENABLED
               value: "true"
             - name: TRACE_SAMPLE_RATIO
-              value: "1"
+              value: "0.1"
             - name: TWELVE_DATA_API_KEY
               valueFrom:
                 secretKeyRef:
