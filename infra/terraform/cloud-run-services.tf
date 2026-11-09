@@ -49,7 +49,7 @@ resource "google_cloud_run_v2_service" "ingest" {
 
       env {
         name  = "TRACE_SAMPLE_RATIO"
-        value = "1"
+        value = "0.1"
       }
 
       env {
