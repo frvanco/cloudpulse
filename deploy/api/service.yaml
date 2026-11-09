@@ -30,6 +30,10 @@ spec:
                   key: '1'
             - name: GOOGLE_CLOUD_PROJECT
               value: cloudpulse-001
+            - name: TRACING_ENABLED
+              value: "true"
+            - name: TRACE_SAMPLE_RATIO
+              value: "1"
             - name: TWELVE_DATA_API_KEY
               valueFrom:
                 secretKeyRef:

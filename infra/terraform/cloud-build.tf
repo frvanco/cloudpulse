@@ -28,7 +28,7 @@ resource "google_cloudbuild_trigger" "main" {
   name            = "cloudpulse-api-main"
   filename        = "infra/terraform/pipelines/cloudbuild.yaml"
   service_account = google_service_account.build.name
-  included_files  = ["apps/api/**", "infra/terraform/pipelines/cloudbuild.yaml"]
+  included_files  = ["apps/api/**", "deploy/api/**", "infra/terraform/pipelines/cloudbuild.yaml"]
   deletion_policy = "DELETE"
 
   approval_config {

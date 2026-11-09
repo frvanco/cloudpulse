@@ -43,6 +43,16 @@ resource "google_cloud_run_v2_service" "ingest" {
       }
 
       env {
+        name  = "TRACING_ENABLED"
+        value = "true"
+      }
+
+      env {
+        name  = "TRACE_SAMPLE_RATIO"
+        value = "1"
+      }
+
+      env {
         name = "DATABASE_URL"
 
         value_source {
